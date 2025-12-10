@@ -26,6 +26,7 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 |------|-------------|-------------------|--------|
 | [Contact Form (Streamlit)](/tools/contact-form-streamlit/) | Form UI that writes to Snowflake table | Streamlit in Snowflake, Snowpark | ✅ Active |
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
+| [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, External Access, Tasks, ACCOUNT_USAGE | ✅ Active |
 
 ---
 
