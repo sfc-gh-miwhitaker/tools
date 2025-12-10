@@ -97,6 +97,8 @@ CREATE OR REPLACE PROCEDURE SFE_SETUP_APP()
     COMMENT = 'TOOL: Sets up Streamlit app files | Author: SE Community | Expires: 2026-01-09'
 AS
 $$
+from io import BytesIO
+
 def setup_app(session):
     """Creates the Streamlit app file in the stage."""
     
@@ -114,24 +116,8 @@ st.set_page_config(
 # Get Snowflake session
 session = get_active_session()
 
-# Custom CSS
-st.markdown("""
-<style>
-    .stApp {
-        background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
-    }
-    .main-header {
-        color: #29B5E8;
-        font-size: 2.5rem;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # Header
-st.markdown('<p class="main-header">📝 Contact Form</p>', unsafe_allow_html=True)
+st.title("📝 Contact Form")
 st.markdown("---")
 
 # Info
@@ -194,7 +180,7 @@ try:
     """).to_pandas()
     
     if len(df) > 0:
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=True)
         total_count = session.sql("SELECT COUNT(*) AS cnt FROM SFE_SUBMISSIONS").collect()[0]["CNT"]
         st.metric("Total Submissions", total_count)
     else:
@@ -208,8 +194,11 @@ st.markdown("---")
 st.caption("Streamlit in Snowflake | SE Community | Expires: 2026-01-09")
 '''
     
+    # Wrap bytes in BytesIO for put_stream
+    file_stream = BytesIO(streamlit_code.encode('utf-8'))
+    
     session.file.put_stream(
-        input_stream=streamlit_code.encode('utf-8'),
+        input_stream=file_stream,
         stage_location='@SFE_STREAMLIT_STAGE/streamlit_app.py',
         auto_compress=False,
         overwrite=True
