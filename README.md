@@ -26,7 +26,8 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 |------|-------------|-------------------|--------|
 | [Contact Form (Streamlit)](/tools/contact-form-streamlit/) | Form UI that writes to Snowflake table | Streamlit in Snowflake, Snowpark | ✅ Active |
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
-| [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, External Access, Tasks, ACCOUNT_USAGE | ✅ Active |
+| [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, ACCOUNT_USAGE | ✅ Active |
+| [Cortex Cost Calculator](/tools/cortex-cost-calculator/) | Cortex AI usage monitoring & forecasting | Streamlit, ACCOUNT_USAGE, Serverless Tasks | ✅ Active |
 
 ---
 
@@ -34,23 +35,17 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 
 ```
 tools/
-├── README.md                     # This file - tools index
+├── README.md                       # This file - tools index
 ├── docs/
-│   └── 01-CONTRIBUTING.md        # How to add new tools
+│   └── 01-CONTRIBUTING.md          # How to add new tools
 ├── shared/
 │   └── sql/
-│       └── 00_shared_setup.sql   # Shared database setup
+│       └── 00_shared_setup.sql     # Shared database setup
 └── tools/
-    ├── contact-form-streamlit/   # Streamlit contact form
-    │   ├── README.md
-    │   ├── deploy.sql
-    │   ├── teardown.sql
-    │   └── diagrams/
-    └── api-data-fetcher/         # API fetch procedure
-        ├── README.md
-        ├── deploy.sql
-        ├── teardown.sql
-        └── diagrams/
+    ├── contact-form-streamlit/     # Streamlit contact form
+    ├── api-data-fetcher/           # API fetch procedure
+    ├── replication-cost-calculator/ # DR cost estimator
+    └── cortex-cost-calculator/     # Cortex AI cost monitoring
 ```
 
 ---
