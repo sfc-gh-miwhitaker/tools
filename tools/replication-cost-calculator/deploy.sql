@@ -74,25 +74,56 @@ CREATE OR REPLACE TABLE SFE_PRICING (
 ) COMMENT = 'TOOL: Replication pricing rates - edit directly to update | Expires: 2026-01-09';
 
 -- Seed pricing data (Business Critical rates as of Dec 2025)
+-- Expanded to cover most common Snowflake regions
 INSERT INTO SFE_PRICING (SERVICE_TYPE, CLOUD, REGION, RATE, UNIT) VALUES
-    -- AWS
+    -- AWS Americas
     ('DATA_TRANSFER', 'AWS', 'us-east-1', 2.50, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AWS', 'us-east-1', 1.00, 'credits/TB'),
     ('STORAGE', 'AWS', 'us-east-1', 0.25, 'credits/TB/month'),
     ('SERVERLESS', 'AWS', 'us-east-1', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'us-east-2', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'us-east-2', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'us-east-2', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'us-east-2', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'us-west-1', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'us-west-1', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'us-west-1', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'us-west-1', 0.10, 'credits/TB/month'),
     ('DATA_TRANSFER', 'AWS', 'us-west-2', 2.50, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AWS', 'us-west-2', 1.00, 'credits/TB'),
     ('STORAGE', 'AWS', 'us-west-2', 0.25, 'credits/TB/month'),
     ('SERVERLESS', 'AWS', 'us-west-2', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'ca-central-1', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'ca-central-1', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'ca-central-1', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'ca-central-1', 0.10, 'credits/TB/month'),
+    -- AWS Europe
     ('DATA_TRANSFER', 'AWS', 'eu-west-1', 2.50, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AWS', 'eu-west-1', 1.00, 'credits/TB'),
     ('STORAGE', 'AWS', 'eu-west-1', 0.25, 'credits/TB/month'),
     ('SERVERLESS', 'AWS', 'eu-west-1', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'eu-west-2', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'eu-west-2', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'eu-west-2', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'eu-west-2', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'eu-central-1', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'eu-central-1', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'eu-central-1', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'eu-central-1', 0.10, 'credits/TB/month'),
+    -- AWS Asia Pacific
     ('DATA_TRANSFER', 'AWS', 'ap-southeast-1', 2.50, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AWS', 'ap-southeast-1', 1.00, 'credits/TB'),
     ('STORAGE', 'AWS', 'ap-southeast-1', 0.25, 'credits/TB/month'),
     ('SERVERLESS', 'AWS', 'ap-southeast-1', 0.10, 'credits/TB/month'),
-    -- Azure
+    ('DATA_TRANSFER', 'AWS', 'ap-southeast-2', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'ap-southeast-2', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'ap-southeast-2', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'ap-southeast-2', 0.10, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AWS', 'ap-northeast-1', 2.50, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AWS', 'ap-northeast-1', 1.00, 'credits/TB'),
+    ('STORAGE', 'AWS', 'ap-northeast-1', 0.25, 'credits/TB/month'),
+    ('SERVERLESS', 'AWS', 'ap-northeast-1', 0.10, 'credits/TB/month'),
+    -- Azure Americas
     ('DATA_TRANSFER', 'AZURE', 'eastus2', 2.70, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AZURE', 'eastus2', 1.10, 'credits/TB'),
     ('STORAGE', 'AZURE', 'eastus2', 0.27, 'credits/TB/month'),
@@ -101,19 +132,37 @@ INSERT INTO SFE_PRICING (SERVICE_TYPE, CLOUD, REGION, RATE, UNIT) VALUES
     ('REPLICATION_COMPUTE', 'AZURE', 'westus2', 1.10, 'credits/TB'),
     ('STORAGE', 'AZURE', 'westus2', 0.27, 'credits/TB/month'),
     ('SERVERLESS', 'AZURE', 'westus2', 0.12, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'AZURE', 'centralus', 2.70, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AZURE', 'centralus', 1.10, 'credits/TB'),
+    ('STORAGE', 'AZURE', 'centralus', 0.27, 'credits/TB/month'),
+    ('SERVERLESS', 'AZURE', 'centralus', 0.12, 'credits/TB/month'),
+    -- Azure Europe
     ('DATA_TRANSFER', 'AZURE', 'westeurope', 2.70, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'AZURE', 'westeurope', 1.10, 'credits/TB'),
     ('STORAGE', 'AZURE', 'westeurope', 0.27, 'credits/TB/month'),
     ('SERVERLESS', 'AZURE', 'westeurope', 0.12, 'credits/TB/month'),
-    -- GCP
+    ('DATA_TRANSFER', 'AZURE', 'northeurope', 2.70, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'AZURE', 'northeurope', 1.10, 'credits/TB'),
+    ('STORAGE', 'AZURE', 'northeurope', 0.27, 'credits/TB/month'),
+    ('SERVERLESS', 'AZURE', 'northeurope', 0.12, 'credits/TB/month'),
+    -- GCP Americas
     ('DATA_TRANSFER', 'GCP', 'us-central1', 2.60, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'GCP', 'us-central1', 1.05, 'credits/TB'),
     ('STORAGE', 'GCP', 'us-central1', 0.26, 'credits/TB/month'),
     ('SERVERLESS', 'GCP', 'us-central1', 0.11, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'GCP', 'us-east4', 2.60, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'GCP', 'us-east4', 1.05, 'credits/TB'),
+    ('STORAGE', 'GCP', 'us-east4', 0.26, 'credits/TB/month'),
+    ('SERVERLESS', 'GCP', 'us-east4', 0.11, 'credits/TB/month'),
+    -- GCP Europe
     ('DATA_TRANSFER', 'GCP', 'europe-west1', 2.60, 'credits/TB'),
     ('REPLICATION_COMPUTE', 'GCP', 'europe-west1', 1.05, 'credits/TB'),
     ('STORAGE', 'GCP', 'europe-west1', 0.26, 'credits/TB/month'),
-    ('SERVERLESS', 'GCP', 'europe-west1', 0.11, 'credits/TB/month');
+    ('SERVERLESS', 'GCP', 'europe-west1', 0.11, 'credits/TB/month'),
+    ('DATA_TRANSFER', 'GCP', 'europe-west2', 2.60, 'credits/TB'),
+    ('REPLICATION_COMPUTE', 'GCP', 'europe-west2', 1.05, 'credits/TB'),
+    ('STORAGE', 'GCP', 'europe-west2', 0.26, 'credits/TB/month'),
+    ('SERVERLESS', 'GCP', 'europe-west2', 0.11, 'credits/TB/month');
 
 -- ============================================================================
 -- DATABASE METADATA VIEW
@@ -121,6 +170,7 @@ INSERT INTO SFE_PRICING (SERVICE_TYPE, CLOUD, REGION, RATE, UNIT) VALUES
 CREATE OR REPLACE VIEW SFE_DB_METADATA
 COMMENT = 'TOOL: Database sizes from ACCOUNT_USAGE | Expires: 2026-01-09'
 AS
+-- Real databases from the account
 SELECT
     d.DATABASE_NAME,
     COALESCE(s.SIZE_TB, 0.001) AS SIZE_TB
@@ -135,7 +185,15 @@ LEFT JOIN (
     FROM SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS
     GROUP BY TABLE_CATALOG
 ) s ON d.DATABASE_NAME = s.DATABASE_NAME
-ORDER BY d.DATABASE_NAME;
+
+UNION ALL
+
+-- Sample databases for testing (if no real data exists)
+SELECT '[SAMPLE] Production_DB' AS DATABASE_NAME, 2.5 AS SIZE_TB
+UNION ALL SELECT '[SAMPLE] Analytics_DW' AS DATABASE_NAME, 5.0 AS SIZE_TB
+UNION ALL SELECT '[SAMPLE] Raw_Data_Lake' AS DATABASE_NAME, 10.0 AS SIZE_TB
+
+ORDER BY DATABASE_NAME;
 
 -- ============================================================================
 -- STREAMLIT APP
@@ -196,6 +254,12 @@ def get_current_region():
 pricing = load_pricing()
 dbs = load_dbs()
 source_cloud, source_region = get_current_region()
+
+# Validate source region exists in pricing, fallback if not
+available_regions = pricing[pricing["CLOUD"] == source_cloud]["REGION"].tolist()
+if source_region not in available_regions and available_regions:
+    st.warning(f"Source region '{source_region}' not in pricing table. Using '{available_regions[0]}' as fallback.")
+    source_region = available_regions[0]
 
 # Database selection
 selected = st.multiselect("Select databases to replicate", sorted(dbs["DATABASE_NAME"].tolist()))

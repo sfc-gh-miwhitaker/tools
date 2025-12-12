@@ -19,8 +19,9 @@ A simple Streamlit calculator for estimating Snowflake database replication and 
 ## Quick Start
 
 ```sql
--- Copy deploy.sql into Snowsight, Run All
--- Then: Projects -> Streamlit -> SFE_REPLICATION_CALCULATOR
+-- 1. (Optional) Run test.sql first to verify your account
+-- 2. Copy deploy.sql into Snowsight, Run All
+-- 3. Go to: Projects -> Streamlit -> SFE_REPLICATION_CALCULATOR
 ```
 
 **No ACCOUNTADMIN required!** Just SYSADMIN.
