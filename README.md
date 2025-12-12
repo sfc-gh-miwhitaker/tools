@@ -24,6 +24,7 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 
 | Tool | Description | Snowflake Features | Status |
 |------|-------------|-------------------|--------|
+| [Wallmonitor](/tools/wallmonitor/) | Cortex Agent monitoring & thread analytics | GET_AI_OBSERVABILITY_EVENTS, Serverless Tasks, Views | ✅ Active |
 | [Contact Form (Streamlit)](/tools/contact-form-streamlit/) | Form UI that writes to Snowflake table | Streamlit in Snowflake, Snowpark | ✅ Active |
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
 | [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, ACCOUNT_USAGE | ✅ Active |
@@ -42,6 +43,7 @@ tools/
 │   └── sql/
 │       └── 00_shared_setup.sql     # Shared database setup
 └── tools/
+    ├── wallmonitor/                # Cortex Agent monitoring
     ├── contact-form-streamlit/     # Streamlit contact form
     ├── api-data-fetcher/           # API fetch procedure
     ├── replication-cost-calculator/ # DR cost estimator
@@ -138,4 +140,4 @@ All tools in this collection follow these standards:
 
 ---
 
-*SE Community • Tools Collection • Last Updated: 2025-12-10*
+*SE Community • Tools Collection • Last Updated: 2025-12-11*
