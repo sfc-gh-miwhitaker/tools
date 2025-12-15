@@ -24,6 +24,7 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 
 | Tool | Description | Snowflake Features | Status |
 |------|-------------|-------------------|--------|
+| [Cortex Agent Chat (React UI)](/tools/cortex-agent-chat/) | Modern React chat interface for Cortex Agents | Cortex Agents, REST API, Programmatic Access Tokens | ✅ Active |
 | [Wallmonitor](/tools/wallmonitor/) | Cortex Agent monitoring & thread analytics | GET_AI_OBSERVABILITY_EVENTS, Serverless Tasks, Views | ✅ Active |
 | [Contact Form (Streamlit)](/tools/contact-form-streamlit/) | Form UI that writes to Snowflake table | Streamlit in Snowflake, Snowpark | ✅ Active |
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
@@ -44,6 +45,7 @@ tools/
 │   └── sql/
 │       └── 00_shared_setup.sql     # Shared database setup
 └── tools/
+    ├── cortex-agent-chat/          # React chat UI for Cortex Agents
     ├── wallmonitor/                # Cortex Agent monitoring
     ├── contact-form-streamlit/     # Streamlit contact form
     ├── api-data-fetcher/           # API fetch procedure
