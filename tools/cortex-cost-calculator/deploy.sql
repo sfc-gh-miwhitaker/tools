@@ -239,8 +239,7 @@ CREATE OR REPLACE STREAMLIT SFE_CORTEX_CALCULATOR
     ROOT_LOCATION = '@SNOWFLAKE_EXAMPLE.SFE_CORTEX_CALC.SFE_STREAMLIT_STAGE'
     MAIN_FILE = 'app.py'
     QUERY_WAREHOUSE = SFE_TOOLS_WH
-    TITLE = 'Cortex Cost Calculator'
-    PACKAGES = ('snowflake-snowpark-python', 'plotly', 'pandas', 'numpy')
+    TITLE = 'SFE Cortex Costs Tracking'
     COMMENT = 'TOOL: Cortex Cost Calculator | Expires: 2026-01-09';
 
 -- Upload Streamlit app
@@ -255,6 +254,18 @@ $$
 from io import BytesIO
 
 def setup(session):
+    # Upload environment.yml with required packages
+    env_yml = '''name: sf_env
+channels:
+  - snowflake
+dependencies:
+  - plotly
+  - pandas
+  - numpy
+'''
+    session.file.put_stream(BytesIO(env_yml.encode('utf-8')), '@SFE_STREAMLIT_STAGE/environment.yml', auto_compress=False, overwrite=True)
+    
+    # Upload app.py
     code = '''
 import streamlit as st
 import pandas as pd
@@ -405,7 +416,7 @@ st.caption("Cortex Cost Calculator | SE Community | Data from ACCOUNT_USAGE (45m
 '''
     
     session.file.put_stream(BytesIO(code.encode('utf-8')), '@SFE_STREAMLIT_STAGE/app.py', auto_compress=False, overwrite=True)
-    return "Calculator app uploaded"
+    return "Calculator app and dependencies uploaded (environment.yml + app.py)"
 $$;
 
 CALL SFE_SETUP_CALCULATOR();
