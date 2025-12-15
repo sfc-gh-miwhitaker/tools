@@ -239,6 +239,7 @@ CREATE OR REPLACE STREAMLIT SFE_CORTEX_CALCULATOR
     ROOT_LOCATION = '@SNOWFLAKE_EXAMPLE.SFE_CORTEX_CALC.SFE_STREAMLIT_STAGE'
     MAIN_FILE = 'app.py'
     QUERY_WAREHOUSE = SFE_TOOLS_WH
+    TITLE = 'Cortex Cost Calculator'
     PACKAGES = ('snowflake-snowpark-python', 'plotly', 'pandas', 'numpy')
     COMMENT = 'TOOL: Cortex Cost Calculator | Expires: 2026-01-09';
 
