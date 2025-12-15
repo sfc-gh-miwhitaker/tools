@@ -7,8 +7,7 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
     user: config.user || '',
     database: config.database || '',
     schema: config.schema || '',
-    agentName: config.agentName || '',
-    privateKey: config.privateKey || ''
+    agentName: config.agentName || ''
   });
 
   const [errors, setErrors] = useState({});
@@ -52,12 +51,6 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
       newErrors.agentName = 'Agent name is required';
     }
     
-    if (!formData.privateKey.trim()) {
-      newErrors.privateKey = 'RSA private key is required';
-    } else if (!formData.privateKey.includes('BEGIN') || !formData.privateKey.includes('PRIVATE KEY')) {
-      newErrors.privateKey = 'Invalid key format. Private key must be in PEM format (contains "BEGIN PRIVATE KEY").';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -75,13 +68,10 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
       <div className="config-card">
         <h2>Configure Snowflake Connection</h2>
         <p className="config-description">
-          Enter your Snowflake account details, Cortex Agent information, and RSA private key for key-pair authentication.
+          Enter your Snowflake account details and Cortex Agent information. The backend proxy handles RSA key-pair authentication and never exposes the private key to the browser.
         </p>
         <div className="pat-info">
-          <strong>🔐 Key-Pair Authentication:</strong> This application uses RSA key-pair authentication with JWT tokens for secure, long-term access. 
-          <a href="https://docs.snowflake.com/en/user-guide/key-pair-auth" target="_blank" rel="noopener noreferrer">
-            Learn about key-pair authentication →
-          </a>
+          <strong>🔐 Key-Pair Authentication:</strong> Managed server-side by the local backend proxy. Keep the private key in <code>.env.server.local</code>, not in the browser.
         </div>
         
         <form onSubmit={handleSubmit} className="config-form">
@@ -153,32 +143,6 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
               className={errors.agentName ? 'error' : ''}
             />
             {errors.agentName && <span className="error-message">{errors.agentName}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="privateKey">RSA Private Key (PEM Format) *</label>
-            <textarea
-              id="privateKey"
-              name="privateKey"
-              value={formData.privateKey}
-              onChange={handleChange}
-              placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
-              className={errors.privateKey ? 'error' : ''}
-              rows="6"
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '0.85rem',
-                resize: 'vertical',
-                padding: '0.75rem',
-                border: '2px solid #e2e8f0',
-                borderRadius: '8px',
-                width: '100%'
-              }}
-            />
-            {errors.privateKey && <span className="error-message">{errors.privateKey}</span>}
-            <small className="form-help">
-              Paste your RSA private key in PEM format. Generate key-pairs with: <code>openssl genrsa -out rsa_key.pem 2048</code>
-            </small>
           </div>
 
           <div className="form-actions">

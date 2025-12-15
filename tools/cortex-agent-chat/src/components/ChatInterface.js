@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ThinkingIndicator from './ThinkingIndicator';
-import { sendMessageToAgentStream } from '../services/snowflakeApi';
+import { sendMessageToAgentStream, createThread } from '../services/snowflakeApi';
 import './ChatInterface.css';
 
 const ChatInterface = ({ config }) => {
@@ -10,7 +10,7 @@ const ChatInterface = ({ config }) => {
     {
       id: 1,
       role: 'assistant',
-      content: `Hello! I'm your Snowflake Cortex Agent (${config.agentName}). How can I help you today?`,
+      content: `Hello! I'm your Snowflake Cortex Agent (${config.agentName || 'Cortex Agent'}). How can I help you today?`,
       timestamp: new Date()
     }
   ]);
@@ -18,9 +18,14 @@ const ChatInterface = ({ config }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState(null);
+  const [threadId, setThreadId] = useState(null);
+  const [parentMessageId, setParentMessageId] = useState(0);
+  const [threadReady, setThreadReady] = useState(false);
+
   const messagesEndRef = useRef(null);
   const streamAbortRef = useRef(null);
   const streamErrorHandledRef = useRef(false);
+  const initializingThreadRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,6 +34,40 @@ const ChatInterface = ({ config }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const initThread = async () => {
+      if (initializingThreadRef.current) return;
+      initializingThreadRef.current = true;
+      setThreadReady(false);
+      try {
+        const id = await createThread();
+        if (!cancelled) {
+          setThreadId(id);
+          setParentMessageId(0);
+          setThreadReady(true);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(`Thread setup failed: ${err.message}`);
+          setThreadReady(false);
+        }
+      } finally {
+        initializingThreadRef.current = false;
+      }
+    };
+
+    initThread();
+
+    return () => {
+      cancelled = true;
+      if (streamAbortRef.current) {
+        streamAbortRef.current.abort();
+      }
+    };
+  }, [config.account, config.user, config.database, config.schema, config.agentName]);
 
   const addMessage = (message) => {
     setMessages((prev) => [...prev, message]);
@@ -45,6 +84,15 @@ const ChatInterface = ({ config }) => {
           : msg
       )
     );
+  };
+
+  const ensureThread = async () => {
+    if (threadReady && threadId) return threadId;
+    const id = await createThread();
+    setThreadId(id);
+    setParentMessageId(0);
+    setThreadReady(true);
+    return id;
   };
 
   const handleStreamingResponse = async (content) => {
@@ -73,6 +121,8 @@ const ChatInterface = ({ config }) => {
       streamAbortRef.current = controller;
       streamErrorHandledRef.current = false;
 
+      const currentThreadId = await ensureThread();
+
       await sendMessageToAgentStream(
         config,
         content.trim(),
@@ -83,6 +133,9 @@ const ChatInterface = ({ config }) => {
           },
           onComplete: (result) => {
             updateMessageContent(assistantMessageId, result.content || '');
+            if (result.assistantMessageId) {
+              setParentMessageId(result.assistantMessageId);
+            }
             streamAbortRef.current = null;
           },
           onError: (streamError) => {
@@ -93,9 +146,14 @@ const ChatInterface = ({ config }) => {
             );
             setError(streamError.message);
             streamAbortRef.current = null;
+          },
+          onMetadata: (meta) => {
+            if (meta?.role === 'assistant' && typeof meta.message_id === 'number') {
+              setParentMessageId(meta.message_id);
+            }
           }
         },
-        { signal: controller.signal }
+        { signal: controller.signal, threadId: currentThreadId, parentMessageId }
       );
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -131,11 +189,16 @@ const ChatInterface = ({ config }) => {
       {
         id: 1,
         role: 'assistant',
-        content: `Hello! I'm your Snowflake Cortex Agent (${config.agentName}). How can I help you today?`,
+        content: `Hello! I'm your Snowflake Cortex Agent (${config.agentName || 'Cortex Agent'}). How can I help you today?`,
         timestamp: new Date()
       }
     ]);
     setError(null);
+    setParentMessageId(0);
+    setThreadReady(false);
+    ensureThread().catch(() => {
+      /* handled separately */
+    });
   };
 
   return (
@@ -144,7 +207,7 @@ const ChatInterface = ({ config }) => {
         <div className="agent-info">
           <h3>🤖 {config.agentName}</h3>
           <span className="connection-status">
-            Connected to {config.database}.{config.schema}
+            Connected to {config.database}.{config.schema} {threadReady ? `(thread ${threadId})` : '(starting thread...)'}
           </span>
         </div>
         <button className="clear-button" onClick={clearChat}>
@@ -171,6 +234,7 @@ const ChatInterface = ({ config }) => {
       <MessageInput 
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        isDisabled={!threadReady}
       />
     </div>
   );

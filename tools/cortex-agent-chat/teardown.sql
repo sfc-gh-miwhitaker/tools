@@ -7,7 +7,7 @@
  *
  * What This Removes:
  *   - Schema SFE_CORTEX_AGENT_CHAT (and all contained objects)
- *   - Cortex Agent SFE_DEMO_AGENT
+ *   - Cortex Agent SFE_REACT_DEMO_AGENT
  *
  * What This Does NOT Remove:
  *   - Shared infrastructure (SNOWFLAKE_EXAMPLE database, SFE_TOOLS_WH warehouse)
@@ -32,7 +32,7 @@ USE WAREHOUSE SFE_TOOLS_WH;
 -- DROP TOOL SCHEMA (CASCADE removes all contained objects)
 -- ============================================================================
 -- This removes:
--- - SFE_DEMO_AGENT (Cortex Agent)
+-- - SFE_REACT_DEMO_AGENT (Cortex Agent)
 -- - Any other objects in the schema
 
 DROP SCHEMA IF EXISTS SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT CASCADE;

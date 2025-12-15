@@ -15,45 +15,46 @@ This diagram shows how user messages flow from the React UI through the REST API
 
 ```mermaid
 graph TB
-    subgraph "Client Layer - User's Browser"
+    subgraph client [Client Layer - User's Browser]
         User[User]
-        UI[React Chat UI<br/>localhost:3000]
+        UI[React Chat UI<br/>localhost:3001]
         Input[Message Input<br/>Component]
         Display[Message List<br/>Component]
     end
-    
-    subgraph "API Client Layer"
-        API[snowflakeApi.js<br/>REST Client]
-        Config[Environment Config<br/>.env.local]
+
+    subgraph proxy [Backend Proxy - Localhost]
+        BFF[Express Proxy<br/>localhost:4000]
+        Signer[Key-Pair JWT Signer<br/>(private key server-side)]
     end
     
-    subgraph "Snowflake Cloud - REST API"
-        Endpoint[REST API Endpoint<br/>/api/v2/.../agents/:run]
-        Auth[PAT Authentication<br/>Bearer Token]
+    subgraph sfapi [Snowflake Cloud - REST API]
+        ThreadsAPI[/POST /api/v2/cortex/threads/]
+        AgentRun[/POST /api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run/]
     end
     
-    subgraph "Snowflake Cloud - Processing"
-        Agent[Cortex Agent<br/>SFE_DEMO_AGENT]
+    subgraph sfproc [Snowflake Cloud - Processing]
+        Agent[Cortex Agent<br/>SFE_REACT_DEMO_AGENT]
         LLM[Cortex LLM Engine<br/>Language Processing]
     end
     
     User -->|Types message| Input
-    Input -->|User message| API
-    Config -->|PAT, endpoints| API
-    API -->|HTTPS POST<br/>JSON payload| Endpoint
-    Endpoint -->|Validate token| Auth
-    Auth -->|Authenticated request| Agent
+    Input -->|User message| UI
+    UI -->|HTTPS /api/threads<br/>/api/agent/run| BFF
+    BFF -->|Generate KEYPAIR_JWT| Signer
+    BFF -->|HTTPS (KEYPAIR_JWT)| ThreadsAPI
+    BFF -->|HTTPS SSE (KEYPAIR_JWT)| AgentRun
+    ThreadsAPI -->|thread_id| BFF
+    AgentRun -->|Validate JWT| Agent
     Agent -->|Process with LLM| LLM
     LLM -->|Generated response| Agent
-    Agent -->|Response JSON| Endpoint
-    Endpoint -->|HTTP 200<br/>Response body| API
-    API -->|Parse response| Display
-    Display -->|Render message| User
+    Agent -->|Response SSE/JSON| AgentRun
+    AgentRun --> BFF --> UI --> Display --> User
     
     style User fill:#e1f5ff
     style UI fill:#fff4e1
-    style API fill:#e8f5e9
-    style Endpoint fill:#f3e5f5
+    style BFF fill:#e8f5e9
+    style ThreadsAPI fill:#f3e5f5
+    style AgentRun fill:#f3e5f5
     style Agent fill:#e3f2fd
     style LLM fill:#e8eaf6
 ```
@@ -86,40 +87,46 @@ graph TB
 - Location: `src/components/MessageList.js`
 - Dependencies: Message component, auto-scroll logic
 
-### API Client Layer
+### Frontend & Proxy Layer
 
 **snowflakeApi.js**
-- Purpose: REST API client for Cortex Agent communication
+- Purpose: Frontend client calling the local backend proxy
 - Technology: JavaScript Fetch API
 - Location: `src/services/snowflakeApi.js`
-- Dependencies: Environment variables, Bearer token authentication
+- Dependencies: Backend proxy endpoints (`/api/threads`, `/api/agent/run`, `/api/agent/run/stream`)
+
+**Backend Proxy (Express)**
+- Purpose: Signs KEYPAIR_JWT tokens and proxies to Snowflake REST APIs
+- Technology: Node.js + Express
+- Location: `server/index.js`
+- Dependencies: `.env.server.local` (private key), Snowflake REST API
 
 **Environment Config**
-- Purpose: Stores connection details and credentials
+- Purpose: Stores connection details (no secrets in frontend)
 - Technology: Create React App environment variables
-- Location: `.env.local` (not committed)
-- Dependencies: None
+- Location: `.env.local` (frontend, gitignored) and `.env.server.local` (backend, gitignored)
+- Dependencies: Backend proxy must have private key env var
 
 ### Snowflake REST API
 
-**REST API Endpoint**
-- Purpose: Public REST interface for Cortex Agent execution
+**Threads API**
+- Purpose: Creates/reads threads for multi-turn context
 - Technology: Snowflake REST API v2
-- Location: `https://{account}.snowflakecomputing.com/api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run`
-- Dependencies: Valid account, database, schema, agent
+- Location: `/api/v2/cortex/threads`
+- Dependencies: KEYPAIR_JWT auth, thread ownership by service user
 
-**PAT Authentication**
-- Purpose: Validates programmatic access tokens
-- Technology: Snowflake authentication system
-- Location: Snowflake account authentication layer
-- Dependencies: Active PAT, network policy, user permissions
+**Agent Run Endpoint**
+- Purpose: Runs Cortex Agent and streams responses
+- Technology: Snowflake REST API v2
+- Location: `/api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run`
+- Dependencies: KEYPAIR_JWT auth, agent grants
 
 ### Snowflake Processing
 
-**Cortex Agent (SFE_DEMO_AGENT)**
+**Cortex Agent (SFE_REACT_DEMO_AGENT)**
 - Purpose: AI-powered conversational agent
 - Technology: Snowflake Cortex Agent
-- Location: `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_DEMO_AGENT`
+- Location: `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT`
 - Dependencies: Cortex service, agent instructions, usage grants
 
 **Cortex LLM Engine**
@@ -133,10 +140,10 @@ graph TB
 | Stage | Input | Transformation | Output |
 |-------|-------|----------------|--------|
 | User Input | Keyboard text | Component state update | Message object |
-| API Request | Message + Config | JSON serialization, HTTPS POST | REST API call |
-| Authentication | PAT token | Token validation | Authenticated session |
+| Thread Setup | None | POST /api/threads (backend) | `thread_id` |
+| Proxy Request | Message + thread_id + parent_message_id | Backend signs KEYPAIR_JWT and calls Snowflake REST | Snowflake streaming response |
 | Agent Processing | User message | LLM inference, instruction following | AI response text |
-| API Response | Agent output | JSON parsing | Message object |
+| Streaming Response | SSE events | Accumulate deltas, capture metadata (message_id) | Final text + next parent_message_id |
 | UI Rendering | Message object | React component render | Displayed message |
 
 ## Message Format
@@ -144,6 +151,8 @@ graph TB
 ### Request Payload
 ```json
 {
+  "thread_id": 12345,
+  "parent_message_id": 0,
   "messages": [
     {
       "role": "user",
@@ -178,7 +187,7 @@ graph TB
 - **API Latency**: 500ms - 3s (depends on message complexity)
 - **Network Overhead**: ~2KB per message exchange
 - **UI Responsiveness**: <50ms render time
-- **Conversation State**: Client-side only (no server persistence)
+- **Conversation State**: Snowflake thread (`thread_id` + `parent_message_id`)
 
 ## Error Handling
 

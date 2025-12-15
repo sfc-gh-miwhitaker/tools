@@ -15,63 +15,62 @@ This diagram shows the network architecture and connectivity between the React a
 
 ```mermaid
 graph TB
-    subgraph "Development Environment - localhost"
+    subgraph dev [Development Environment - localhost]
         Dev[Developer Machine<br/>IP: 192.168.1.x]
         Browser[Web Browser<br/>:80 or :443]
-        React[React Dev Server<br/>:3000 HTTP]
-        Files[Local Filesystem<br/>.env.local]
+        React[React Dev Server<br/>:3001 HTTP]
+        Backend[Express Proxy<br/>:4000 HTTP]
+        Files[Local Filesystem<br/>.env.local (frontend)<br/>.env.server.local (backend)]
     end
     
-    subgraph "Network Layer"
+    subgraph network [Network Layer]
         FW[Corporate Firewall<br/>Outbound HTTPS]
         DNS[DNS Resolution<br/>*.snowflakecomputing.com]
     end
     
-    subgraph "Snowflake Cloud - account.snowflakecomputing.com"
+    subgraph snowflake [Snowflake Cloud - account.snowflakecomputing.com]
         LB[Load Balancer<br/>:443 HTTPS]
         API[REST API Gateway<br/>TLS 1.2+]
         
-        subgraph "Security Layer"
-            NP[Network Policy<br/>SFE_CORTEX_CHAT_POLICY]
-            PAT_Val[PAT Validator<br/>Token Authentication]
+        subgraph security [Security Layer]
             RBAC[Role-Based Access<br/>SYSADMIN grants]
         end
         
-        subgraph "Compute Layer"
+        subgraph compute [Compute Layer]
             WH[Warehouse<br/>SFE_TOOLS_WH<br/>X-SMALL]
         end
         
-        subgraph "Service Layer"
+        subgraph services [Service Layer]
             Schema[Schema<br/>SFE_CORTEX_AGENT_CHAT]
-            Agent[Cortex Agent<br/>SFE_DEMO_AGENT]
+            Agent[Cortex Agent<br/>SFE_REACT_DEMO_AGENT]
             Cortex[Cortex AI Service<br/>Managed LLM]
         end
     end
     
     Dev -->|HTTP| React
-    React -->|HTTP| Browser
-    Browser -->|HTTPS<br/>Bearer: PAT| FW
+    React -->|HTTP /api/...| Backend
+    Backend -->|HTTPS :443<br/>KEYPAIR_JWT| FW
     FW -->|HTTPS :443| DNS
     DNS -->|Resolved IP| LB
     LB -->|TLS Handshake| API
-    API -->|Validate| PAT_Val
-    PAT_Val -->|Check policy| NP
-    NP -->|Verify grants| RBAC
+    API -->|Validate JWT| RBAC
     RBAC -->|Allocate| WH
     WH -->|Execute| Schema
     Schema -->|Invoke| Agent
     Agent -->|Process| Cortex
-    Cortex -->|Response| Agent
     Agent -->|Return| API
-    API -->|HTTPS 200| Browser
+    API -->|HTTPS/SSE| Backend
+    Backend -->|HTTP| React
+    React --> Browser
     Files -.->|Load config| React
+    Files -.->|Load secrets| Backend
     
     style Dev fill:#e1f5ff
     style Browser fill:#fff4e1
     style React fill:#e8f5e9
+    style Backend fill:#e8f5e9
     style FW fill:#ffebee
     style API fill:#f3e5f5
-    style NP fill:#fff3e0
     style Agent fill:#e3f2fd
     style Cortex fill:#e8eaf6
 ```
@@ -97,16 +96,23 @@ graph TB
 **React Dev Server**
 - Purpose: Serves React application during development
 - Technology: Create React App development server (Webpack)
-- Location: localhost:3000
+- Location: localhost:3001
 - Dependencies: Node.js 14+, npm packages
-- Ports: HTTP :3000 (configurable)
+- Ports: HTTP :3001 (configurable)
+
+**Backend Proxy (Express)**
+- Purpose: Signs KEYPAIR_JWT tokens and proxies all Snowflake REST calls
+- Technology: Node.js + Express
+- Location: localhost:4000
+- Dependencies: `.env.server.local` for Snowflake account, user, private key
+- Ports: HTTP :4000 (configurable)
 
 **Local Filesystem**
 - Purpose: Stores configuration and credentials
-- Technology: `.env.local` file (gitignored)
+- Technology: `.env.local` (frontend, no secrets) and `.env.server.local` (backend, contains private key)
 - Location: Project root directory
 - Dependencies: None
-- Security: Must not be committed to version control
+- Security: Must not be committed to version control; private key only in `.env.server.local`
 
 ### Network Layer
 
@@ -144,26 +150,18 @@ graph TB
 
 ### Security Layer
 
-**Network Policy (SFE_CORTEX_CHAT_POLICY)**
-- Purpose: Controls IP-based access to Snowflake
-- Technology: Snowflake Network Policy
-- Location: Account-level security configuration
-- Dependencies: User association, IP allowlist
-- Configuration: ALLOWED_IP_LIST (customize for production)
-
-**PAT Validator**
-- Purpose: Authenticates Programmatic Access Tokens
+**KEYPAIR_JWT Validation**
+- Purpose: Validates RS256 JWT signed by backend proxy
 - Technology: Snowflake authentication service
 - Location: Snowflake identity platform
-- Dependencies: Valid PAT, user association, expiration check
-- Headers: `Authorization: Bearer {PAT}`
+- Headers: `Authorization: Bearer <jwt>` and `X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT`
 
 **Role-Based Access Control (RBAC)**
 - Purpose: Validates user permissions for agent usage
 - Technology: Snowflake grants and roles
 - Location: Access control metadata
 - Dependencies: USAGE grant on agent, appropriate role
-- Required Grants: `GRANT USAGE ON CORTEX AGENT ... TO ROLE SYSADMIN`
+- Required Grants: `GRANT USAGE ON AGENT ... TO ROLE`
 
 ### Compute Layer
 
@@ -201,16 +199,17 @@ graph TB
 
 | Layer | Protocol | Encryption | Port |
 |-------|----------|------------|------|
-| Browser → Dev Server | HTTP | None (localhost) | 3000 |
-| Browser → Snowflake | HTTPS | TLS 1.2+ | 443 |
+| Browser → Dev Server | HTTP | None (localhost) | 3001 |
+| React → Backend Proxy | HTTP | None (localhost) | 4000 |
+| Backend Proxy → Snowflake | HTTPS | TLS 1.2+ | 443 |
 | API → Cortex | Internal | Snowflake managed | N/A |
 
 ### Authentication Flow
 
-1. **Token Generation**: User creates PAT via Snowsight or SQL
-2. **Token Storage**: PAT stored in `.env.local` (not committed)
-3. **Token Transmission**: PAT sent as Bearer token in Authorization header
-4. **Token Validation**: Snowflake validates token, user, network policy
+1. **Proxy Signing**: Backend signs KEYPAIR_JWT using private key from `.env.server.local`
+2. **Frontend Call**: React calls local proxy (`/api/threads`, `/api/agent/run`)
+3. **Token Transmission**: Proxy sends JWT as Bearer token to Snowflake
+4. **Token Validation**: Snowflake validates signature, issuer/subject, expiration
 5. **Permission Check**: RBAC validates usage grants on agent
 6. **Request Processing**: Agent invocation proceeds if authorized
 
@@ -227,7 +226,7 @@ Direction: Outbound
 **Inbound Rules (Development Only):**
 ```
 Protocol: HTTP
-Port: 3000
+Port: 3001 (frontend), 4000 (backend proxy)
 Source: localhost (127.0.0.1)
 Direction: Inbound (local only)
 ```

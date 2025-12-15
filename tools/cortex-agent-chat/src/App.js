@@ -10,7 +10,6 @@ function App() {
     database: process.env.REACT_APP_SNOWFLAKE_DATABASE || '',
     schema: process.env.REACT_APP_SNOWFLAKE_SCHEMA || '',
     agentName: process.env.REACT_APP_CORTEX_AGENT_NAME || '',
-    privateKey: process.env.REACT_APP_SNOWFLAKE_PRIVATE_KEY || '',
     isConfigured: false
   });
 
@@ -19,8 +18,7 @@ function App() {
                        process.env.REACT_APP_SNOWFLAKE_USER &&
                        process.env.REACT_APP_SNOWFLAKE_DATABASE && 
                        process.env.REACT_APP_SNOWFLAKE_SCHEMA && 
-                       process.env.REACT_APP_CORTEX_AGENT_NAME && 
-                       process.env.REACT_APP_SNOWFLAKE_PRIVATE_KEY;
+                       process.env.REACT_APP_CORTEX_AGENT_NAME;
 
   // Debug environment variables (remove in production)
   console.log('Environment variables check:', {
@@ -29,7 +27,6 @@ function App() {
     database: process.env.REACT_APP_SNOWFLAKE_DATABASE ? 'SET' : 'NOT SET',
     schema: process.env.REACT_APP_SNOWFLAKE_SCHEMA ? 'SET' : 'NOT SET',
     agentName: process.env.REACT_APP_CORTEX_AGENT_NAME ? 'SET' : 'NOT SET',
-    privateKey: process.env.REACT_APP_SNOWFLAKE_PRIVATE_KEY ? 'SET' : 'NOT SET',
     hasEnvConfig: hasEnvConfig
   });
 

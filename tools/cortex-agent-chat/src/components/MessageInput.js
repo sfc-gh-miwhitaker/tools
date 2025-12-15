@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import './MessageInput.css';
 
-const MessageInput = ({ onSendMessage, isLoading }) => {
+const MessageInput = ({ onSendMessage, isLoading, isDisabled = false }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (message.trim() && !isLoading) {
+    if (message.trim() && !isLoading && !isDisabled) {
       onSendMessage(message);
       setMessage('');
       if (textareaRef.current) {
@@ -43,13 +43,13 @@ const MessageInput = ({ onSendMessage, isLoading }) => {
             onKeyPress={handleKeyPress}
             placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
             className="message-textarea"
-            disabled={isLoading}
+            disabled={isLoading || isDisabled}
             rows={1}
           />
           <button
             type="submit"
-            className={`send-button ${!message.trim() || isLoading ? 'disabled' : ''}`}
-            disabled={!message.trim() || isLoading}
+            className={`send-button ${!message.trim() || isLoading || isDisabled ? 'disabled' : ''}`}
+            disabled={!message.trim() || isLoading || isDisabled}
           >
             {isLoading ? (
               <div className="loading-spinner"></div>

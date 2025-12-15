@@ -31,3 +31,5 @@ yarn-error.log*
 Thumbs.db
 env.local
 scratch.sql
+
+deploy_with_key.sql

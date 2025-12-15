@@ -1,175 +1,323 @@
-# Cortex Agent Chat (React UI)
+![Reference Implementation](https://img.shields.io/badge/Reference-Implementation-blue)
+![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=flat&logo=snowflake&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
+![Expires](https://img.shields.io/badge/Expires-2026--01--14-orange)
 
-> **Expires:** 2026-01-14 (30 days from creation)
+# Cortex Agent Chat - React Integration Example
 
-A modern React application providing a chat interface for interacting with Snowflake Cortex Agents via REST API. This tool demonstrates how to build web applications that consume Cortex Agent capabilities.
+> **DEMONSTRATION PROJECT - EXPIRES: 2026-01-14**  
+> This demo uses Snowflake features current as of December 2024.  
+> After expiration, this repository will be archived and made private.
+
+**Author:** SE Community  
+**Purpose:** Reference implementation showing React.js integration with Snowflake Cortex Agents  
+**Created:** 2025-12-15 | **Expires:** 2026-01-14 (30 days) | **Status:** ACTIVE
 
 ---
 
-## What It Does
+## ⚠️ Important Context
 
-- Provides a modern chat UI for Cortex Agent interactions
-- Connects directly to Snowflake Cortex Agents via REST API
-- Supports programmatic access token (PAT) authentication
-- Enables real-time conversation with AI agents
-- Demonstrates React integration patterns for Snowflake
+**This project is intentionally NOT 100% Snowflake-native.**
+
+Unlike typical tools in this repository (which use Streamlit, Snowflake notebooks, or pure SQL), this example demonstrates how to integrate Snowflake Cortex Agents into an **external React.js application**.
+
+**Use this project when you need to:**
+- Build a custom web UI outside Snowflake
+- Integrate Cortex Agents into existing React applications
+- Understand REST API patterns for Cortex Agents
+- Implement key-pair JWT authentication in JavaScript
+
+**For native Snowflake chat interfaces, use:**
+- Snowflake Cortex Analyst built-in UI
+- Streamlit applications (Python-based)
+- Snowflake Notebooks with interactive widgets
+
+---
+
+## Overview
+
+A modern, single-page React application that provides a chat interface for Snowflake Cortex Agents using the REST API with secure key-pair JWT authentication.
+
+**Key Features:**
+- 🎨 Snowflake-branded UI (cyan #29B5E8 color palette)
+- 🔐 Key-pair JWT authentication (no expiring tokens to manage)
+- 💬 Real-time streaming responses via Server-Sent Events
+- ⚡ Auto-refreshing JWT tokens (1-hour lifetime)
+- 🧩 Simple, production-ready React patterns
+
+## 🔒 Security Warning
+
+**Private key stays on the backend proxy.** The React app never receives or stores the RSA private key. JWT signing happens in the local Node.js/Express proxy (`server/index.js`), which forwards requests to Snowflake.
+
+**⚠️ Still demo-only:** The included backend is lightweight and not hardened for production. For production:
+1. Keep the private key in a secure server-side secret store (vault/KMS/env var).
+2. Lock down the backend with auth and TLS (reverse proxy / API gateway).
+3. Enforce least-privilege Snowflake roles for the service user.
+4. Rotate keys regularly and monitor REST usage.
+
+**Technology Stack:**
+- React.js (UI framework)
+- Node.js + Express (backend proxy)
+- Snowflake Cortex Agents (AI backend)
+- RSA key-pair authentication (no password or PAT tokens)
 
 ---
 
 ## Snowflake Features Demonstrated
 
 - **Cortex Agents** - AI-powered conversational agents
-- **REST API** - Programmatic access to Snowflake services
-- **Key-Pair JWT Authentication** - Secure, long-term API authentication
-- **External Integration** - React web app consuming Snowflake services
+- **REST API** - Programmatic access via `/api/v2/databases/.../agents/:run`
+- **Key-Pair JWT Authentication** - Secure, long-lived asymmetric authentication
+- **Server-Sent Events (SSE)** - Real-time streaming responses
+- **External Integration** - React web app as external consumer
+
+### Requirements
+
+- **ACCOUNTADMIN role** - Required to grant CORTEX_AGENT_USER database role
+- **Cortex Agents availability** - Feature must be available in your Snowflake region
+- **OpenSSL** - For generating RSA key-pair (usually pre-installed on macOS/Linux)
 
 ---
 
-## Quick Start
+## 👋 First Time Here?
 
-### 1. Run Shared Setup (First Time Only)
+Follow these steps to get the chat interface running:
 
-```sql
--- Copy shared/sql/00_shared_setup.sql into Snowsight, Run All
-```
+### ⚡ Quick Setup (Automated - Recommended)
 
-### 2. Deploy Cortex Agent Infrastructure
+**Step 1: Run Setup Script (1 minute)**
 
-```sql
--- Copy deploy.sql into Snowsight, Run All
--- This creates a sample Cortex Agent for testing
-```
-
-### 3. Generate Key-Pair for Authentication
-
-**Generate RSA Key-Pair:**
 ```bash
-# Generate private key (2048-bit RSA)
+# macOS/Linux
+cd tools/cortex-agent-chat
+./tools/01_setup.sh
+
+# Windows
+cd tools\cortex-agent-chat
+tools\01_setup.bat
+```
+
+This script will:
+- ✅ Generate RSA key-pair (rsa_key.pem, rsa_key.pub)
+- ✅ Create `.env.server.local` (backend, holds private key) and `.env.local` (frontend, no secrets)
+- ✅ Generate `deploy_with_key.sql` combining all SQL steps
+- ✅ Output clear next steps
+
+**Step 2: Update Account Name (30 seconds)**
+
+```bash
+# Edit .env.server.local (backend) and .env.local (frontend) to set your account
+nano .env.server.local
+nano .env.local
+
+# Example:
+SNOWFLAKE_ACCOUNT=xy12345.us-east-1      # backend (server)
+REACT_APP_SNOWFLAKE_ACCOUNT=xy12345.us-east-1  # frontend (non-secret)
+```
+
+**Step 3: Deploy to Snowflake (2 minutes)**
+
+```sql
+-- Copy deploy_with_key.sql (generated by setup script) into Snowsight → Run All
+-- This script:
+-- ✓ Creates the demo Cortex Agent (SFE_REACT_DEMO_AGENT)
+-- ✓ Assigns your public key to your user
+-- ✓ Verifies key assignment
+```
+
+**Step 4: Start Application (1 minute)**
+
+```bash
+# Install dependencies and start backend + frontend together
+npm install
+npm run dev
+
+# Backend: http://localhost:4000
+# Frontend: http://localhost:3001
+```
+
+**Total setup time: ~5 minutes** ⚡
+
+---
+
+### 🔧 Manual Setup (Step-by-Step Alternative)
+
+<details>
+<summary>Click to expand manual setup instructions</summary>
+
+### Step 1: Run Shared Setup (First Time Only)
+
+```sql
+-- Copy shared/sql/00_shared_setup.sql into Snowsight → Run All
+-- (Creates SNOWFLAKE_EXAMPLE database and SFE_SHARED_WH warehouse)
+```
+
+### Step 2: Generate RSA Key-Pair
+
+```bash
+# Generate 2048-bit RSA private key
 openssl genrsa -out rsa_key.pem 2048
 
-# Extract public key from private key
+# Extract public key
 openssl rsa -in rsa_key.pem -pubout -out rsa_key.pub
-
-# View private key (for copying to .env.local)
-cat rsa_key.pem
 ```
 
-**Assign Public Key to Snowflake User:**
+### Step 3: Deploy Cortex Agent
+
 ```sql
--- In Snowsight, run:
+-- Copy deploy.sql into Snowsight → Run All
+-- (Creates SFE_REACT_DEMO_AGENT)
+```
+
+### Step 4: Assign Public Key to User
+
+```sql
+-- In Snowsight:
 USE ROLE ACCOUNTADMIN;
 
--- Assign the public key to your user
--- Replace <your_username> and paste your public key content (without BEGIN/END lines)
-ALTER USER <your_username> SET RSA_PUBLIC_KEY='MIIBIjANBgkqhki...your_key_here...';
+-- Copy public key content (without BEGIN/END lines)
+ALTER USER your_username SET RSA_PUBLIC_KEY='MIIBIjANBgkqhki...';
 
--- Verify the key was assigned
-DESC USER <your_username>;
--- Look for RSA_PUBLIC_KEY_FP property (fingerprint)
+-- Verify
+DESC USER your_username;
 ```
 
-**Security Notes:**
-- Store `rsa_key.pem` securely (never commit to version control)
-- The private key stays on your machine - never sent over the network
-- Public key is safe to assign to Snowflake user
-- No network policy required for key-pair authentication
-
-### 4. Install and Configure Local Application
+### Step 5: Create environment files
 
 ```bash
-# Navigate to tool directory
-cd tools/cortex-agent-chat
+cp server.env.example .env.server.local   # backend (holds private key)
+cp env.example .env.local                 # frontend (no secrets)
 
-# Install dependencies
-npm install
-
-# Configure environment
-cp env.example .env.local
-
-# Edit .env.local with your values:
-# - REACT_APP_SNOWFLAKE_ACCOUNT=your-account
-# - REACT_APP_SNOWFLAKE_USER=your_username
-# - REACT_APP_SNOWFLAKE_DATABASE=SNOWFLAKE_EXAMPLE
-# - REACT_APP_SNOWFLAKE_SCHEMA=SFE_CORTEX_AGENT_CHAT
-# - REACT_APP_CORTEX_AGENT_NAME=SFE_DEMO_AGENT
-# - REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-
-# Start application
-npm start
-
-# Open browser to http://localhost:3000
+# Edit both files to set your account; place the private key ONLY in .env.server.local
 ```
 
-### 5. Use the Chat Interface
+### Step 6: Start Application
 
-1. Application auto-loads configuration from `.env.local`
-2. Type your message in the input field
-3. Responses stream from the Cortex Agent
-4. Use "Clear Chat" to start a new conversation
+```bash
+npm install
+npm run dev   # starts backend :4000 and frontend :3001
+```
+
+**Total setup time: ~15 minutes**
+
+</details>
 
 ---
 
-## Objects Created
+### 🎯 What Happens Next?
 
-| Object Type | Name | Purpose |
-|-------------|------|---------|
-| Schema | `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT` | Tool namespace |
-| Cortex Agent | `SFE_DEMO_AGENT` | Sample conversational agent |
+1. **App loads** with configuration from `.env.local` (frontend, non-secret)
+2. **Backend proxy** reads `.env.server.local`, signs key-pair JWTs, and talks to Snowflake
+3. **Thread created automatically**; parent_message_id tracked from Snowflake `metadata` events
+4. **Chat interface** streams responses in real time
+
+**Ready to chat!** Try: "What can you help me with?"
+
+---
+
+## Snowflake Objects Created
+
+| Object Type | Fully Qualified Name | Purpose |
+|-------------|---------------------|---------|
+| Schema | `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT` | Project namespace |
+| Cortex Agent | `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT` | Demo conversational agent |
+
+**Shared Infrastructure (created by `shared/sql/00_shared_setup.sql`):**
+- Database: `SNOWFLAKE_EXAMPLE`
+- Warehouse: `SFE_SHARED_WH` (XS, auto-suspend 60s)
+- Schema: `SNOWFLAKE_EXAMPLE.SEMANTIC_MODELS` (for semantic views)
+
+**User Configuration:**
+- RSA public key assigned to your Snowflake user (via `ALTER USER`)
 
 ---
 
 ## Architecture
 
-### System Components
+### High-Level Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ User's Browser                                                  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ React Application (localhost:3000)                       │  │
-│  │                                                          │  │
-│  │  ┌─────────────────┐    ┌─────────────────────────┐    │  │
-│  │  │ ChatInterface   │───>│ snowflakeApi.js         │    │  │
-│  │  │ Component       │    │ (REST Client)           │    │  │
-│  │  └─────────────────┘    └──────────┬──────────────┘    │  │
-│  └────────────────────────────────────┼───────────────────┘  │
-└────────────────────────────────────────┼──────────────────────┘
-                                         │
-                                         │ HTTPS + Bearer Token
-                                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Snowflake Account                                               │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ REST API Endpoint                                        │  │
-│  │ /api/v2/databases/.../schemas/.../agents/...:run        │  │
-│  └──────────────────┬───────────────────────────────────────┘  │
-│                     │                                           │
-│                     ▼                                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Cortex Agent (SFE_DEMO_AGENT)                           │  │
-│  │                                                          │  │
-│  │  - Processes user messages                              │  │
-│  │  - Generates AI responses                               │  │
-│  │  - Returns conversation results                         │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ 🌐 User's Browser (localhost:3001)                                   │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ React Application (Snowflake-branded UI)                       │ │
+│  │                                                                 │ │
+│  │  1. User types message                                         │ │
+│  │  2. jwtGenerator.js signs JWT with private key (RS256)        │ │
+│  │  3. snowflakeApi.js sends REST request with JWT token         │ │
+│  │                                                                 │ │
+│  │  Components:                                                    │ │
+│  │  • ChatInterface (UI)                                          │ │
+│  │  • JWTTokenManager (auth)                                      │ │
+│  │  • snowflakeApi.js (REST client)                               │ │
+│  └─────────────────────────────┬──────────────────────────────────┘ │
+└─────────────────────────────────┼─────────────────────────────────────┘
+                                  │
+                                  │ HTTPS
+                                  │ Authorization: Bearer {JWT_TOKEN}
+                                  │ X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ ❄️  Snowflake Account                                                │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ REST API Endpoint                                              │ │
+│  │ POST /api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run│ │
+│  │                                                                 │ │
+│  │ 1. Validates JWT signature with user's public key              │ │
+│  │ 2. Routes request to Cortex Agent                             │ │
+│  └─────────────────────────────┬──────────────────────────────────┘ │
+│                                 │                                    │
+│                                 ▼                                    │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ Cortex Agent: SFE_REACT_DEMO_AGENT                                   │ │
+│  │                                                                 │ │
+│  │ • Processes user message                                       │ │
+│  │ • Generates AI-powered response                                │ │
+│  │ • Streams result via Server-Sent Events (SSE)                  │ │
+│  └─────────────────────────────┬──────────────────────────────────┘ │
+└─────────────────────────────────┼─────────────────────────────────────┘
+                                  │
+                                  │ SSE: data: {"chunk": "response..."}
+                                  ▼
+                            React UI updates in real-time
 ```
 
-See `diagrams/` for detailed architecture diagrams.
+**Key Security Properties:**
+- 🔐 Private key never leaves the browser
+- 🔑 JWT tokens signed client-side (no server-side auth middleware needed)
+- ⏰ Tokens auto-refresh every hour (transparent to user)
+- 🔒 Public key validation in Snowflake (asymmetric cryptography)
+
+See `diagrams/` for detailed sequence diagrams (auth-flow, data-flow, network-flow).
 
 ---
 
-## API Integration
+## API Integration Details
 
 ### REST Endpoint
 
 ```
-POST /api/v2/databases/{database}/schemas/{schema}/agents/{agent}:run
+POST https://{account}.snowflakecomputing.com/api/v2/databases/{database}/schemas/{schema}/agents/{agent}:run
 ```
 
-### Request Format
+**Example:**
+```
+https://xy12345.snowflakecomputing.com/api/v2/databases/SNOWFLAKE_EXAMPLE/schemas/SFE_CORTEX_AGENT_CHAT/agents/SFE_REACT_DEMO_AGENT:run
+```
+
+### Request Headers
+
+```http
+POST /api/v2/databases/SNOWFLAKE_EXAMPLE/schemas/SFE_CORTEX_AGENT_CHAT/agents/SFE_REACT_DEMO_AGENT:run
+Host: xy12345.snowflakecomputing.com
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
+```
+
+### Request Body
 
 ```json
 {
@@ -179,7 +327,7 @@ POST /api/v2/databases/{database}/schemas/{schema}/agents/{agent}:run
       "content": [
         {
           "type": "text",
-          "text": "Your message here"
+          "text": "What are the top 5 customers by revenue?"
         }
       ]
     }
@@ -187,18 +335,106 @@ POST /api/v2/databases/{database}/schemas/{schema}/agents/{agent}:run
 }
 ```
 
-### Authentication
+### Response Format (SSE Stream)
 
 ```
-Authorization: Bearer {JWT_TOKEN}
-X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
+data: {"chunk": "Based on the data, "}
+data: {"chunk": "the top 5 customers "}
+data: {"chunk": "are:\n1. Acme Corp - $125k\n..."}
+data: [DONE]
 ```
 
-**JWT Token Generation:**
-- Generated client-side from RSA private key
-- Signed with RS256 (RSA-SHA256) algorithm
-- Token expires after 1 hour (auto-refreshed)
-- No manual token rotation required
+### Key-Pair JWT Authentication
+
+**How It Works:**
+1. **Client-side JWT generation** - React app uses `jsrsasign` to sign tokens with private key
+2. **Token structure:**
+   ```json
+   {
+     "header": {
+       "alg": "RS256",
+       "typ": "JWT"
+     },
+     "payload": {
+       "iss": "ACCOUNT.USER",
+       "sub": "ACCOUNT.USER",
+       "iat": 1702665600,
+       "exp": 1702669200
+     }
+   }
+   ```
+3. **Snowflake validation** - Verifies JWT signature using user's public key
+4. **Auto-refresh** - `JWTTokenManager` generates new tokens before expiration
+
+**Token Lifetime:**
+- Expires 1 hour after generation
+- Auto-refreshed transparently by `JWTTokenManager`
+- No user intervention needed
+
+**Security Benefits:**
+- ✅ No password in requests
+- ✅ No expiring PAT tokens to manage
+- ✅ Private key never transmitted (only JWT signature)
+- ✅ Asymmetric cryptography (public key can't generate valid tokens)
+
+---
+
+## Project Structure
+
+```
+cortex-agent-chat/
+├── tools/
+│   ├── 01_setup.sh                # ⚡ Automated setup (macOS/Linux)
+│   │                              #    - Generates RSA key-pair
+│   │                              #    - Creates .env.local
+│   │                              #    - Generates deploy_with_key.sql
+│   └── 01_setup.bat               # ⚡ Automated setup (Windows)
+├── src/
+│   ├── components/
+│   │   ├── ChatInterface.js       # 💬 Main chat container (Snowflake-branded header)
+│   │   ├── ChatInterface.css      # 🎨 Snowflake cyan (#29B5E8) styling
+│   │   ├── ThinkingIndicator.js   # ❄️  "Agent is thinking" animation
+│   │   ├── ConfigPanel.js         # ⚙️  Configuration form (key-pair setup)
+│   │   ├── MessageList.js         # 📜 Message display container
+│   │   ├── MessageInput.js        # ⌨️  User input field
+│   │   └── Message.js             # 💬 Individual message bubble
+│   ├── services/
+│   │   ├── jwtGenerator.js        # 🔐 JWT token generation (jsrsasign)
+│   │   │                          #    - generateJWT() function
+│   │   │                          #    - JWTTokenManager class
+│   │   └── snowflakeApi.js        # 🌐 REST API client
+│   │                              #    - sendMessageToAgent()
+│   │                              #    - sendMessageToAgentStream() (SSE)
+│   ├── App.js                     # 🏠 Root component
+│   ├── App.css                    # 🎨 Global Snowflake color variables
+│   └── index.js                   # 🚀 React entry point
+├── diagrams/
+│   ├── auth-flow.md               # 📊 Key-pair JWT authentication diagram
+│   ├── data-flow.md               # 📊 Message flow diagram
+│   └── network-flow.md            # 📊 Network architecture
+├── deploy.sql                     # ❄️  Snowflake setup (agent creation)
+├── teardown.sql                   # 🧹 Cleanup script
+├── env.example                    # 📋 Template for .env.local (manual setup)
+├── .gitignore                     # 🚫 Excludes .env.local, *.pem, *.key
+└── README.md                      # 📖 This file
+```
+
+**Generated Files (by setup script, gitignored):**
+- `rsa_key.pem` - Private key (2048-bit RSA)
+- `rsa_key.pub` - Public key
+- `.env.local` - Configuration with private key
+- `deploy_with_key.sql` - Combined SQL (deploy + key assignment)
+
+**Key Files to Understand:**
+
+| File | Purpose | Key Concept |
+|------|---------|-------------|
+| `jwtGenerator.js` | Generates JWT tokens client-side | Uses `jsrsasign` to sign tokens with RSA private key |
+| `snowflakeApi.js` | REST API calls to Snowflake | Adds `Authorization: Bearer {JWT}` header |
+| `ChatInterface.js` | Main UI component | Manages chat state, displays messages |
+| `ThinkingIndicator.js` | Loading animation | Visual feedback during agent processing |
+| `App.css` | Global styles | Snowflake color palette (cyan, charcoal, white) |
+| `deploy.sql` | Snowflake setup | Creates `SFE_REACT_DEMO_AGENT` Cortex Agent |
 
 ---
 
@@ -206,233 +442,580 @@ X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
 
 ### Available Scripts
 
-- `npm install` - Install dependencies (including jsrsasign for JWT)
-- `npm start` - Start development server (port 3000)
-- `npm run build` - Create production build
-- `npm test` - Run test suite
-
-### Project Structure
-
+```bash
+npm install       # Install dependencies (React, jsrsasign, etc.)
+npm start         # Start dev server (http://localhost:3001)
+npm run build     # Create production build
+npm test          # Run test suite (if tests added)
 ```
-cortex-agent-chat/
-├── public/
-│   └── index.html              # HTML template
-├── src/
-│   ├── components/
-│   │   ├── ChatInterface.js    # Main chat container
-│   │   ├── ConfigPanel.js      # Configuration panel
-│   │   ├── MessageList.js      # Message display
-│   │   ├── MessageInput.js     # Input field
-│   │   └── Message.js          # Individual message
-│   ├── services/
-│   │   ├── jwtGenerator.js     # JWT token generator
-│   │   └── snowflakeApi.js     # REST API client
-│   ├── App.js                  # Root component
-│   └── index.js                # Entry point
-├── scripts/
-│   └── describe-agent.sh       # CLI testing helper
-├── deploy.sql                  # Snowflake setup
-├── teardown.sql                # Cleanup script
-└── README.md                   # This file
+
+### UI Customization
+
+**Snowflake Brand Colors (CSS Variables):**
+```css
+:root {
+  --sf-cyan: #29B5E8;          /* Primary brand color */
+  --sf-cyan-dark: #1E88C7;     /* Hover states */
+  --sf-cyan-light: #E3F5FC;    /* Backgrounds */
+  --sf-charcoal: #2D3E50;      /* Dark text */
+  --sf-gray: #6B7785;          /* Secondary text */
+  --sf-white: #FFFFFF;         /* Backgrounds */
+}
 ```
+
+**Customization Points:**
+- Modify `src/App.css` for global theme changes
+- Edit component CSS files for specific element styling
+- All colors use CSS variables for easy theme switching
+- Responsive design included (mobile-friendly)
 
 ---
 
-## Testing with CLI
+## Testing & Validation
 
-Validate your setup outside the React app:
+### Quick Verification (After Running Setup Script)
+
+If you used `tools/01_setup.sh` (recommended), the script already created your keys. Verify they exist:
 
 ```bash
-# Note: CLI testing currently uses PAT-based auth
-# For key-pair testing, use the React application directly
-# or implement JWT generation in the bash script
+# Check key files were generated
+ls -l rsa_key.pem rsa_key.pub
+# Should see: rsa_key.pem (private), rsa_key.pub (public)
 
-# Set environment variables
-export SNOWFLAKE_ACCOUNT=your-account
-export SNOWFLAKE_USER=your_username
-export SNOWFLAKE_DATABASE=SNOWFLAKE_EXAMPLE
-export SNOWFLAKE_SCHEMA=SFE_CORTEX_AGENT_CHAT
-export SNOWFLAKE_AGENT=SFE_DEMO_AGENT
+# Check .env.local was created
+grep SNOWFLAKE_USER .env.local
+# Should see: REACT_APP_SNOWFLAKE_USER=YOUR_USERNAME
+```
 
-# For CLI testing, use snow CLI with key-pair:
-snow connection test --account $SNOWFLAKE_ACCOUNT --user $SNOWFLAKE_USER --private-key-path rsa_key.pem
+### Test Key-Pair Authentication
+
+Before running the React app, verify your key-pair setup:
+
+```bash
+# Test Snowflake connection with key-pair
+snow connection test \
+  --account xy12345.us-east-1 \
+  --user YOUR_USERNAME \
+  --private-key-path rsa_key.pem
+
+# Expected output:
+# ✅ Connection successful!
+```
+
+### Verify Agent Exists
+
+```sql
+-- In Snowsight:
+USE ROLE ACCOUNTADMIN;
+USE DATABASE SNOWFLAKE_EXAMPLE;
+USE SCHEMA SFE_CORTEX_AGENT_CHAT;
+
+-- List agents
+SHOW AGENTS;
+
+-- Describe agent
+DESC CORTEX AGENT SFE_REACT_DEMO_AGENT;
+```
+
+### Check Public Key Assignment
+
+```sql
+-- Verify public key fingerprint
+DESC USER YOUR_USERNAME;
+
+-- Look for:
+-- RSA_PUBLIC_KEY_FP: SHA256:abc123... (should be populated)
+```
+
+### Test REST API Directly (Optional)
+
+```bash
+# Generate JWT token (requires jq and openssl)
+# See scripts/describe-agent.sh for full example
+
+# Or test via React app - easier!
+npm start
 ```
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### 🔴 Error: 401 Unauthorized
 
-**401 Unauthorized**
-- Invalid private key format
-- Public key not assigned to user
-- JWT token generation failed
-- Wrong account identifier or username
+**Symptoms:**
+- Browser console shows: `Error: 401 Unauthorized`
+- Chat interface can't connect to agent
 
-**403 Forbidden**
-- Role restrictions prevent access
-- User lacks agent usage grants
-- Public key fingerprint mismatch
+**Common Causes & Fixes:**
 
-**404 Not Found**
-- Database/schema/agent name mismatch
-- Agent does not exist
-- Case sensitivity issue
+| Cause | How to Fix |
+|-------|------------|
+| **Public key not assigned** | Run `DESC USER <username>;` - check `RSA_PUBLIC_KEY_FP` is populated |
+| **Wrong account format** | Use `xy12345.us-east-1` not `xy12345` or full URL |
+| **Username mismatch** | `.env.local` username must match Snowflake user with public key |
+| **Invalid private key format** | Ensure PEM format with `-----BEGIN PRIVATE KEY-----` header |
+| **Key-pair mismatch** | Public key in Snowflake must match private key in `.env.local` |
 
-**Invalid Private Key**
-- Ensure key is in PEM format (PKCS#8 or PKCS#1)
-- Key must include BEGIN/END markers
-- Verify key file not corrupted
+**Diagnostic Steps:**
+```bash
+# 1. Test key-pair authentication
+snow connection test --account xy12345.us-east-1 --user YOUR_USERNAME --private-key-path rsa_key.pem
 
-**JWT Token Errors**
-- Check browser console for detailed JWT generation errors
-- Verify public key assigned to correct user
-- Ensure private/public key pair matches
+# 2. Check public key assignment
+# In Snowsight:
+DESC USER YOUR_USERNAME;
+# Look for RSA_PUBLIC_KEY_FP value
 
-### Verification Steps
-
-1. Verify agent exists:
-   ```sql
-   SHOW CORTEX AGENTS IN SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT;
-   ```
-
-2. Verify public key assigned:
-   ```sql
-   DESC USER <your_username>;
-   -- Check RSA_PUBLIC_KEY_FP is set
-   ```
-
-3. Test key-pair with snow CLI:
-   ```bash
-   snow connection test --account <account> --user <user> --private-key-path rsa_key.pem
-   ```
-
-4. Check browser console for JWT generation errors
-
-4. Verify `.env.local` configuration matches your Snowflake setup
-
----
-
-## Security Considerations
-
-🚨 **Critical Security Rules:**
-
-- **NEVER commit `.env.local`** - Contains private key
-- **NEVER commit private keys** - Enables full account access
-- **Store private keys securely** - Use password manager or vault
-- **Use strong key encryption** - 2048-bit RSA minimum
-- **Rotate keys periodically** - Best practice for long-term use
-- **Restrict user roles** - Minimum required permissions
-- **Monitor key usage** - Check Snowflake audit logs for suspicious activity
-
-### Key-Pair Security Benefits
-
-- Private key never sent over network (only JWT tokens)
-- No token expiration management (auto-refreshed client-side)
-- No network policy requirements
-- Public key can be safely shared/stored in Snowflake
-- Compromised public key doesn't grant access (need private key)
-
-### .gitignore
-
-The global ignore already excludes:
-```
-.env.local
-.env
-*.env
-*.pem
-*.key
-node_modules/
-build/
+# 3. Check browser console
+# Open DevTools → Console → Look for JWT errors
 ```
 
 ---
 
-## Customization
+### 🔴 Error: 403 Forbidden
 
-### Change the Agent
+**Symptoms:**
+- Authentication succeeds, but agent access denied
 
-Edit `.env.local`:
+**Common Causes & Fixes:**
+
+| Cause | How to Fix |
+|-------|------------|
+| **Missing role grants** | Run `GRANT USAGE ON DATABASE ... TO ROLE YOUR_ROLE;` |
+| **Agent not accessible** | Check agent ownership and grants |
+| **Schema access denied** | Grant `USAGE ON SCHEMA SFE_CORTEX_AGENT_CHAT` |
+
+**Grant Required Permissions:**
+```sql
+USE ROLE ACCOUNTADMIN;
+
+-- Grant database access
+GRANT USAGE ON DATABASE SNOWFLAKE_EXAMPLE TO ROLE YOUR_ROLE;
+
+-- Grant schema access
+GRANT USAGE ON SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT TO ROLE YOUR_ROLE;
+
+-- Grant agent usage
+GRANT USAGE ON CORTEX AGENT SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT TO ROLE YOUR_ROLE;
+
+-- Assign role to user
+GRANT ROLE YOUR_ROLE TO USER YOUR_USERNAME;
+```
+
+---
+
+### 🔴 Error: 404 Not Found
+
+**Symptoms:**
+- API endpoint returns 404
+- Agent name or schema not found
+
+**Common Causes & Fixes:**
+
+| Cause | How to Fix |
+|-------|------------|
+| **Agent doesn't exist** | Run `SHOW AGENTS;` to verify |
+| **Wrong schema/database** | Check `.env.local` values match `deploy.sql` |
+| **Case sensitivity** | Use exact names: `SFE_CORTEX_AGENT_CHAT` not `sfe_cortex_agent_chat` |
+
+**Verify Objects Exist:**
+```sql
+-- Check database
+SHOW DATABASES LIKE 'SNOWFLAKE_EXAMPLE';
+
+-- Check schema
+SHOW SCHEMAS IN DATABASE SNOWFLAKE_EXAMPLE;
+
+-- Check agent
+SHOW AGENTS IN SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT;
+```
+
+---
+
+### 🔴 Error: Invalid Private Key / JWT Token Invalid
+
+**Symptoms:**
+- Browser console: `JWT generation failed`
+- API error: `JWT token is invalid`
+- `Error: Invalid key format`
+
+**Common Causes & Fixes:**
+
+| Cause | How to Fix |
+|-------|------------|
+| **Incorrect newline escaping** | Private key must use literal `\n` (backslash-n) for line breaks |
+| **Extra whitespace** | Copy entire key including BEGIN/END lines, no trailing spaces |
+| **Wrong key format** | Use PKCS#8 (`BEGIN PRIVATE KEY`) not PKCS#1 (`BEGIN RSA PRIVATE KEY`) |
+| **Corrupted key file** | Regenerate key-pair with `openssl genrsa` |
+| **Setup script issue** | Manually fix the private key format (see below) |
+
+**Correct `.env.local` Format:**
 ```env
-REACT_APP_SNOWFLAKE_ACCOUNT=your-account
-REACT_APP_SNOWFLAKE_USER=your-username
-REACT_APP_CORTEX_AGENT_NAME=YOUR_CUSTOM_AGENT
+# ✅ CORRECT - Single line with literal \n escape sequences
+REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhki...\n-----END PRIVATE KEY-----"
+
+# ❌ WRONG - Multi-line (won't parse)
+REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhki...
+-----END PRIVATE KEY-----"
+
+# ❌ WRONG - Actual newlines instead of \n
+REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhki...
+-----END PRIVATE KEY-----"
+```
+
+**Quick Fix (if setup script didn't format correctly):**
+```bash
+# Option 1: Run the fix script (easiest)
+./tools/fix_private_key.sh
+
+# Option 2: One-liner to fix .env.local
+PRIVATE_KEY=$(awk 'NR>1{printf "\\n"}{printf "%s",$0}' rsa_key.pem)
+sed -i.bak "s|REACT_APP_SNOWFLAKE_PRIVATE_KEY=.*|REACT_APP_SNOWFLAKE_PRIVATE_KEY=\"$PRIVATE_KEY\"|" .env.local
+
+# Option 3: Manually copy and format
+# 1. Open rsa_key.pem
+# 2. Copy entire contents
+# 3. Replace actual newlines with \n (backslash-n)
+# 4. Paste as single line in .env.local
+```
+
+**Verify Format:**
+```bash
+# Check if private key has proper escaping
+grep "REACT_APP_SNOWFLAKE_PRIVATE_KEY" .env.local | grep -o "\\\\n" | wc -l
+# Should show a number > 0 (number of \n escape sequences)
+
+# Or visually inspect
+cat .env.local | grep PRIVATE_KEY
+# Should see: REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...
+```
+
+---
+
+### 🔴 Error: CORS / Network Issues
+
+**Symptoms:**
+- Browser console: `CORS policy blocked`
+- Network errors in DevTools
+
+**Common Causes & Fixes:**
+
+| Cause | How to Fix |
+|-------|------------|
+| **Browser security policy** | This is expected for local dev - use production deployment for real apps |
+| **Account URL format** | Use `https://xy12345.snowflakecomputing.com` not custom domain |
+| **Firewall blocking** | Check corporate firewall allows `*.snowflakecomputing.com` |
+
+**Note:** CORS errors are common in local development. For production, deploy React app to same domain or configure Snowflake network policies.
+
+---
+
+### ✅ Quick Health Check
+
+Run this checklist to verify everything is configured:
+
+```bash
+# ☐ Key-pair generated
+ls -l rsa_key.pem rsa_key.pub
+
+# ☐ Public key assigned to user
+snow sql -q "DESC USER YOUR_USERNAME;" | grep RSA_PUBLIC_KEY_FP
+
+# ☐ Agent exists
+snow sql -q "SHOW AGENTS IN SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT;"
+
+# ☐ .env.local configured
+grep REACT_APP .env.local
+
+# ☐ Dependencies installed
+ls node_modules/jsrsasign
+
+# ☐ Connection test passes
+snow connection test --account xy12345.us-east-1 --user YOUR_USERNAME --private-key-path rsa_key.pem
+```
+
+**If all checks pass and still having issues:**
+1. Check browser console (DevTools → Console)
+2. Check Network tab for API request details
+3. Review `deploy.sql` was run successfully
+4. Verify role grants with `SHOW GRANTS TO USER YOUR_USERNAME;`
+
+---
+
+## Security Best Practices
+
+### 🔒 Critical Security Rules (NEVER VIOLATE)
+
+| Rule | Why It Matters |
+|------|----------------|
+| ❌ **NEVER commit `.env.local`** | Contains private key (full account access) |
+| ❌ **NEVER commit `*.pem` or `*.key` files** | Private keys grant permanent access |
+| ❌ **NEVER share private keys** | Each user needs their own key-pair |
+| ✅ **Store private keys securely** | Use password manager or secure vault |
+| ✅ **Use 2048-bit RSA minimum** | Industry standard for security |
+| ✅ **Rotate keys every 90 days** | Limit exposure window if compromised |
+| ✅ **Restrict user roles** | Principle of least privilege |
+| ✅ **Monitor audit logs** | Detect suspicious key usage |
+
+### Key-Pair Authentication Benefits
+
+**Compared to passwords or PAT tokens:**
+- ✅ **Private key never transmitted** - Only JWT signatures sent over network
+- ✅ **No expiring tokens** - Keys last until manually rotated
+- ✅ **Auto-refreshing JWTs** - Transparent 1-hour token lifecycle
+- ✅ **Asymmetric cryptography** - Public key can't generate valid tokens
+- ✅ **No network policies needed** - Key-pair auth works from anywhere
+- ✅ **Audit trail** - Snowflake logs all key-pair authentications
+
+### Files Protected by `.gitignore`
+
+```gitignore
+# Automatically excluded (global ignore):
+.env.local           # Your private key configuration
+.env                 # Any environment files
+*.env                # All .env variants
+*.pem                # RSA private keys
+*.key                # Generic key files
+rsa_key*             # Key-pair files
+node_modules/        # Dependencies
+build/               # Production builds
+.DS_Store            # macOS metadata
+```
+
+### What Gets Committed (Safe)
+
+```bash
+✅ env.example        # Template (no real keys)
+✅ deploy.sql         # SQL setup
+✅ src/               # React source code
+✅ README.md          # Documentation
+✅ .gitignore         # Security rules (for this project)
+```
+
+### Private Key Storage Options
+
+**Development (Local Machine):**
+```bash
+# Option 1: Keep in project root (gitignored)
+./rsa_key.pem
+
+# Option 2: Separate secure directory
+~/snowflake-keys/rsa_key.pem
+
+# Option 3: System keychain (macOS)
+security add-generic-password -s "snowflake-rsa-key" -a "$USER" -w "$(cat rsa_key.pem)"
+```
+
+**Production (Not Recommended):**
+- This example is for local development only
+- For production web apps, use server-side proxy with secure key storage
+- Never expose private keys to browser environments in production
+
+---
+
+## Customization Guide
+
+### Connect to Your Own Cortex Agent
+
+Edit `.env.local` to point to your agent:
+
+```env
+# Your Snowflake details
+REACT_APP_SNOWFLAKE_ACCOUNT=xy12345.us-east-1
+REACT_APP_SNOWFLAKE_USER=your_username
+
+# Your agent location
 REACT_APP_SNOWFLAKE_DATABASE=YOUR_DATABASE
 REACT_APP_SNOWFLAKE_SCHEMA=YOUR_SCHEMA
+REACT_APP_CORTEX_AGENT_NAME=YOUR_AGENT_NAME
+
+# Your key-pair (same as before)
 REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 ```
 
-### Styling
+**Restart app after changes:**
+```bash
+# Stop with Ctrl+C, then:
+npm start
+```
 
-- Modify component CSS files in `src/components/`
-- Update `src/App.css` for global styles
-- Responsive design included
+---
 
-### Add Features
+### Customize Snowflake Brand Colors
 
-- Message history persistence (localStorage)
-- Multi-agent switching (dropdown selector)
-- File attachment support (document upload)
-- Markdown rendering (code syntax highlighting)
-- Conversation export (JSON/Markdown download)
-- Dark mode theme toggle
+**Edit `src/App.css`:**
+```css
+:root {
+  --sf-cyan: #29B5E8;          /* Primary - change to your brand color */
+  --sf-cyan-dark: #1E88C7;     /* Darker shade for hover */
+  --sf-cyan-light: #E3F5FC;    /* Light backgrounds */
+  --sf-charcoal: #2D3E50;      /* Dark text */
+  --sf-gray: #6B7785;          /* Secondary text */
+  --sf-white: #FFFFFF;         /* Backgrounds */
+}
+```
+
+All components use these CSS variables, so changes propagate automatically.
+
+---
+
+### Add New Features (Ideas)
+
+**Easy Additions:**
+- 💾 **Message history persistence** - Use `localStorage` to save conversation
+- 🌙 **Dark mode** - Add theme toggle with alternate color scheme
+- 📋 **Copy to clipboard** - Copy assistant responses with button
+- 🔍 **Search messages** - Filter conversation by keyword
+
+**Medium Complexity:**
+- 🔄 **Multi-agent switching** - Dropdown to switch between agents
+- 📊 **Markdown rendering** - Use `react-markdown` for formatted responses
+- 📥 **Export conversation** - Download as JSON or Markdown
+- ⌨️  **Keyboard shortcuts** - Ctrl+Enter to send, etc.
+
+**Advanced:**
+- 📎 **File attachments** - Upload PDFs/images to agent
+- 🎤 **Voice input** - Speech-to-text for messages
+- 🌐 **Multi-language** - i18n support for UI text
+- 📈 **Analytics** - Track usage, response times
 
 ---
 
 ## Cleanup
 
-### Remove Application
+### Complete Teardown (4 steps)
 
+**Step 1: Stop React Application**
 ```bash
-# Stop the development server (Ctrl+C)
-# Remove node_modules
+# In terminal running npm start:
+# Press Ctrl+C to stop development server
+
+# Optional: Remove dependencies
 rm -rf node_modules
 ```
 
-### Remove Snowflake Objects
-
+**Step 2: Remove Snowflake Objects**
 ```sql
--- Copy teardown.sql into Snowsight, Run All
+-- Copy teardown.sql into Snowsight → Run All
+
+-- This removes:
+-- ✓ Schema: SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT
+-- ✓ Agent: SFE_REACT_DEMO_AGENT
+-- ✗ Does NOT remove shared infrastructure (SNOWFLAKE_EXAMPLE database)
+-- ✗ Does NOT remove public key from user (optional cleanup below)
 ```
 
-This removes:
-- Schema `SFE_CORTEX_AGENT_CHAT` and all contained objects
-- Demo Cortex Agent `SFE_DEMO_AGENT`
-- Does NOT remove shared infrastructure (database, warehouse)
-- Does NOT remove public key from user (manual cleanup optional)
+**Step 3: Remove Public Key (Optional)**
 
-### Remove Public Key (Optional)
+Only needed if you won't use key-pair auth for other projects:
 
 ```sql
--- Unset the public key from your user
+-- Unset public key from your user
+USE ROLE ACCOUNTADMIN;
 ALTER USER <your_username> UNSET RSA_PUBLIC_KEY;
 
 -- Verify removal
 DESC USER <your_username>;
--- RSA_PUBLIC_KEY_FP should now be null
+-- RSA_PUBLIC_KEY_FP should be null
 ```
 
-### Delete Private Key
+**Step 4: Securely Delete Private Key**
 
 ```bash
-# Securely delete private key file
-shred -u rsa_key.pem  # Linux
-rm -P rsa_key.pem     # macOS
-# Or manually delete and clear clipboard
+# Option 1: Secure deletion (Linux)
+shred -u rsa_key.pem rsa_key.pub
+
+# Option 2: Secure deletion (macOS)
+rm -P rsa_key.pem rsa_key.pub
+
+# Option 3: Manual deletion
+rm rsa_key.pem rsa_key.pub
+# Then clear clipboard and .env.local file
+```
+
+**Step 5: Remove Configuration**
+```bash
+# Delete local environment (contains private key)
+rm .env.local
+
+# Verify no secrets remain
+grep -r "BEGIN PRIVATE KEY" .  # Should return nothing
 ```
 
 ---
 
-## References
+### Partial Cleanup Options
 
-- [Snowflake Cortex Agents](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents)
-- [Cortex Agent REST API](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-rest-api)
-- [Key-Pair Authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth)
-- [Snowflake REST API Authentication](https://docs.snowflake.com/en/developer-guide/sql-api/authenticating)
-- [React Documentation](https://reactjs.org/docs)
-- [jsrsasign Library](https://kjur.github.io/jsrsasign/)
+**Keep Snowflake Objects, Remove Local Setup:**
+```bash
+# Just remove local files
+rm -rf node_modules .env.local
+rm rsa_key.pem rsa_key.pub
+```
+
+**Keep React App, Remove Agent:**
+```sql
+-- In Snowsight:
+DROP CORTEX AGENT SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT;
+```
+
+**Reset to Fresh State:**
+```bash
+# Remove everything local
+rm -rf node_modules .env.local rsa_key.pem rsa_key.pub
+
+# Re-run setup from Step 1
+npm install
+# Generate new keys...
+```
 
 ---
 
-*SE Community • Cortex Agent Chat Tool • Created: 2025-12-15 • Expires: 2026-01-14*
+## Additional Resources
+
+### Snowflake Documentation
+- [Cortex Agents Overview](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents) - Feature introduction
+- [Cortex Agent REST API](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-rest-api) - API reference
+- [Key-Pair Authentication Guide](https://docs.snowflake.com/en/user-guide/key-pair-auth) - Setup instructions
+- [REST API Authentication](https://docs.snowflake.com/en/developer-guide/sql-api/authenticating) - JWT token format
+
+### Technical References
+- [React.js Documentation](https://reactjs.org/docs) - React framework guide
+- [jsrsasign Library](https://kjur.github.io/jsrsasign/) - JWT signing library
+- [OpenSSL Documentation](https://www.openssl.org/docs/) - Key generation commands
+- [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) - Streaming protocol
+
+### Related Tools
+- [Snowflake Python Connector](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector) - Alternative to REST API
+- [Streamlit + Cortex Agents](https://docs.snowflake.com/en/developer-guide/streamlit/about-streamlit) - Native Snowflake UI
+- [Snow CLI](https://docs.snowflake.com/en/developer-guide/snowflake-cli/overview) - Command-line tooling
+
+---
+
+## License & Attribution
+
+**Author:** SE Community  
+**Created:** 2025-12-15  
+**Expires:** 2026-01-14 (30 days)  
+**Status:** Active Reference Implementation
+
+**Reference Implementation Notice:**  
+This code demonstrates production-grade architectural patterns and best practices for integrating React.js with Snowflake Cortex Agents. Review and customize security, authentication, and error handling for your organization's specific requirements before production deployment.
+
+**⚠️ Important:**
+- This is a development example - not production-ready
+- Private keys in browser environments are for local dev only
+- For production, use server-side proxy with secure key storage
+- Review Snowflake's security best practices before deployment
+
+---
+
+**Questions or Issues?**  
+This is a reference implementation maintained by the Snowflake SE Community. For production support, consult Snowflake documentation or your account team.
+
+---
+
+*Last Updated: 2025-12-15 | Next Review: 2026-01-14 | Version: 1.0*

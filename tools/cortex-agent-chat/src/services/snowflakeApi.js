@@ -1,41 +1,16 @@
 /**
- * Snowflake Cortex Agent API client
+ * Snowflake Cortex Agent API client (via local backend proxy).
  *
- * Provides helpers for interacting with Snowflake Cortex Agents via the documented REST API.
- * Uses key-pair JWT authentication for secure, long-term access without token rotation.
+ * The private key never touches the browser. All auth and Snowflake calls
+ * happen in the backend proxy at http://localhost:4000 by default.
  */
 
-import { JWTTokenManager } from './jwtGenerator';
+const backendBase = process.env.REACT_APP_BACKEND_URL || '';
 
-// Cache token managers per configuration
-const tokenManagers = new Map();
-
-const getTokenManager = (config) => {
-  const key = `${config.account}:${config.user}`;
-  
-  if (!tokenManagers.has(key)) {
-    tokenManagers.set(
-      key,
-      new JWTTokenManager(config.account, config.user, config.privateKey)
-    );
-  }
-  
-  return tokenManagers.get(key);
-};
-
-const buildBaseUrl = (account) => {
-  if (!account || !account.trim()) {
-    throw new Error('Snowflake account is required');
-  }
-
-  const trimmed = account.trim();
-  return trimmed.includes('.snowflakecomputing.com')
-    ? `https://${trimmed}`
-    : `https://${trimmed}.snowflakecomputing.com`;
-};
+const buildBackendUrl = (path) => `${backendBase}${path}`;
 
 const validateConfig = (config) => {
-  const { account, user, database, schema, agentName, privateKey } = config;
+  const { account, user, database, schema, agentName } = config;
 
   if (!account || !account.trim()) {
     throw new Error('Snowflake account is required');
@@ -56,40 +31,30 @@ const validateConfig = (config) => {
   if (!agentName || !agentName.trim()) {
     throw new Error('Agent name is required');
   }
-
-  if (!privateKey || !privateKey.trim()) {
-    throw new Error('RSA private key is required');
-  }
-
-  if (!privateKey.trim().includes('BEGIN') || !privateKey.trim().includes('PRIVATE KEY')) {
-    throw new Error('Invalid private key format: key must be in PEM format (contains "BEGIN PRIVATE KEY")');
-  }
 };
 
-const buildAgentRunUrl = ({ account, database, schema, agentName }) => {
-  const baseUrl = buildBaseUrl(account);
-  return `${baseUrl}/api/v2/databases/${encodeURIComponent(database.trim())}/schemas/${encodeURIComponent(schema.trim())}/agents/${encodeURIComponent(agentName.trim())}:run`;
-};
-
-const buildAgentDescribeUrl = ({ account, database, schema, agentName }) => {
-  const baseUrl = buildBaseUrl(account);
-  return `${baseUrl}/api/v2/databases/${encodeURIComponent(database.trim())}/schemas/${encodeURIComponent(schema.trim())}/agents/${encodeURIComponent(agentName.trim())}`;
-};
-
-const buildPayload = (message, { stream = false } = {}) => ({
-  stream,
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: message
-        }
-      ]
-    }
-  ]
+const buildHeaders = (accept = 'application/json') => ({
+  'Content-Type': 'application/json',
+  Accept: accept
 });
+
+export const createThread = async (originApplication = 'cortex-agent-chat') => {
+  const response = await fetch(buildBackendUrl('/api/threads'), {
+    method: 'POST',
+    headers: buildHeaders(),
+    body: JSON.stringify({ origin_application: originApplication })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(
+      `Failed to create thread (${response.status} ${response.statusText}): ${detail}`
+    );
+  }
+
+  const data = await response.json();
+  return data.thread_id || data.id || data;
+};
 
 const extractResponseText = (data) => {
   if (!data || typeof data !== 'object') {
@@ -125,34 +90,28 @@ const extractResponseText = (data) => {
   return null;
 };
 
-export const sendMessageToAgent = async (config, message) => {
+export const sendMessageToAgent = async (config, message, options = {}) => {
   validateConfig(config);
 
   if (!message || !message.trim()) {
     throw new Error('Cannot send an empty message to the Cortex Agent.');
   }
 
-  const url = buildAgentRunUrl(config);
-  const payload = buildPayload(message.trim(), { stream: false });
-  
-  // Generate JWT token for authentication
-  const tokenManager = getTokenManager(config);
-  const jwtToken = tokenManager.getToken();
+  const payload = {
+    message: message.trim(),
+    threadId: options.threadId,
+    parentMessageId: options.parentMessageId
+  };
 
-  const response = await fetch(url, {
+  const response = await fetch(buildBackendUrl('/api/agent/run'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${jwtToken}`,
-      'X-Snowflake-Authorization-Token-Type': 'KEYPAIR_JWT'
-    },
+    headers: buildHeaders(),
     body: JSON.stringify(payload)
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Snowflake API Error ${response.status} ${response.statusText}: ${errorBody}`);
+    throw new Error(`Backend Error ${response.status} ${response.statusText}: ${errorBody}`);
   }
 
   const data = await response.json();
@@ -250,34 +209,28 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
   }
 
   const { onDelta, onComplete, onError } = handlers;
-  const { signal } = options;
+  const { signal, threadId, parentMessageId } = options;
 
   if (signal?.aborted) {
     throw new DOMException('The request was aborted before it started.', 'AbortError');
   }
 
-  const url = buildAgentRunUrl(config);
-  const payload = buildPayload(message.trim(), { stream: true });
-  
-  // Generate JWT token for authentication
-  const tokenManager = getTokenManager(config);
-  const jwtToken = tokenManager.getToken();
+  const payload = {
+    message: message.trim(),
+    threadId,
+    parentMessageId
+  };
 
-  const response = await fetch(url, {
+  const response = await fetch(buildBackendUrl('/api/agent/run/stream'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-      Authorization: `Bearer ${jwtToken}`,
-      'X-Snowflake-Authorization-Token-Type': 'KEYPAIR_JWT'
-    },
+    headers: buildHeaders('text/event-stream'),
     body: JSON.stringify(payload),
     signal
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Snowflake API Error ${response.status} ${response.statusText}: ${errorBody}`);
+    throw new Error(`Backend Error ${response.status} ${response.statusText}: ${errorBody}`);
   }
 
   if (!response.body) {
@@ -290,6 +243,7 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
   let accumulated = '';
   let completed = false;
   let finalMetadata;
+  let latestAssistantMessageId;
 
   try {
     if (signal) {
@@ -337,6 +291,17 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
           throw error;
         }
 
+        if (event === 'metadata') {
+          const meta = parsed?.data || parsed;
+          if (meta?.role === 'assistant' && typeof meta.message_id === 'number') {
+            latestAssistantMessageId = meta.message_id;
+          }
+          if (handlers.onMetadata) {
+            handlers.onMetadata(meta);
+          }
+          continue;
+        }
+
         if (event === 'response.text.delta' || event === 'response.output_text.delta' || event === 'response.delta' || event === 'message.delta') {
           const chunk = extractTextFromEvent(parsed);
           if (chunk) {
@@ -362,9 +327,9 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
           finalMetadata = finalMetadata || extractMetadataFromEvent(parsed);
           completed = true;
           if (onComplete) {
-            onComplete({ content: text, metadata: finalMetadata });
+            onComplete({ content: text, metadata: finalMetadata, assistantMessageId: latestAssistantMessageId });
           }
-          return { content: text, metadata: finalMetadata };
+          return { content: text, metadata: finalMetadata, assistantMessageId: latestAssistantMessageId };
         }
 
         // Ignore other event types (e.g., response.status, response.thinking)
@@ -374,12 +339,12 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
     const finalText = accumulated;
     completed = true;
     if (onComplete) {
-      onComplete({ content: finalText, metadata: finalMetadata });
+      onComplete({ content: finalText, metadata: finalMetadata, assistantMessageId: latestAssistantMessageId });
     }
-    return { content: finalText, metadata: finalMetadata };
+    return { content: finalText, metadata: finalMetadata, assistantMessageId: latestAssistantMessageId };
   } catch (error) {
     if (error.name === 'AbortError') {
-      return { content: accumulated, metadata: finalMetadata };
+      return { content: accumulated, metadata: finalMetadata, assistantMessageId: latestAssistantMessageId };
     }
 
     if (onError && !completed) {
@@ -397,27 +362,5 @@ export const sendMessageToAgentStream = async (config, message, handlers = {}, o
 
 export const describeAgent = async (config) => {
   validateConfig(config);
-
-  const url = buildAgentDescribeUrl(config);
-  
-  // Generate JWT token for authentication
-  const tokenManager = getTokenManager(config);
-  const jwtToken = tokenManager.getToken();
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${jwtToken}`,
-      'X-Snowflake-Authorization-Token-Type': 'KEYPAIR_JWT'
-    }
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Snowflake API Error ${response.status} ${response.statusText}: ${errorBody}`);
-  }
-
-  return response.json();
+  throw new Error('describeAgent is not implemented in the backend proxy client.');
 };

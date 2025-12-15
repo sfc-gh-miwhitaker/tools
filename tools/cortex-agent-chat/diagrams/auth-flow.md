@@ -19,9 +19,9 @@ sequenceDiagram
     actor User as Application User
     participant LocalMachine as Local Machine
     participant OpenSSL as OpenSSL
-    participant React as React App
-    participant JWT as JWT Generator
-    participant Env as .env.local
+    participant Backend as Express Proxy (:4000)
+    participant EnvServer as .env.server.local
+    participant React as React App (:3001)
     participant SF as Snowflake API
     participant Auth as Auth Service
     participant RBAC as RBAC Engine
@@ -32,73 +32,38 @@ sequenceDiagram
     Admin->>LocalMachine: Generate key-pair
     LocalMachine->>OpenSSL: openssl genrsa -out rsa_key.pem 2048
     OpenSSL-->>LocalMachine: Private key created
-    
     LocalMachine->>OpenSSL: openssl rsa -in rsa_key.pem -pubout
     OpenSSL-->>LocalMachine: Public key extracted
     
-    Admin->>Env: Store private key in .env.local
-    Note over Env: REACT_APP_SNOWFLAKE_PRIVATE_KEY=<br/>-----BEGIN PRIVATE KEY-----<br/>...
-    
+    Admin->>EnvServer: Store private key in .env.server.local (backend only)
     Admin->>SF: ALTER USER SET RSA_PUBLIC_KEY
-    SF-->>Admin: Public key assigned
+    SF-->>Admin: Public key assigned (RSA_PUBLIC_KEY_FP set)
     
-    Admin->>SF: GRANT USAGE ON AGENT<br/>TO ROLE SYSADMIN
+    Admin->>SF: GRANT USAGE ON AGENT TO ROLE
     SF-->>Admin: Grant successful
     
     Note over User,Agent: Runtime Authentication Flow (Each Request)
     
-    User->>React: Open http://localhost:3000
-    React->>Env: Read configuration
-    Env-->>React: Private key + account + user + agent details
+    User->>React: Open http://localhost:3001
+    React->>Backend: POST /api/threads (create thread)
+    Backend->>Backend: Sign KEYPAIR_JWT with private key
+    Backend->>SF: POST /api/v2/cortex/threads (Authorization: Bearer JWT)
+    SF-->>Backend: thread_id
+    Backend-->>React: thread_id
     
-    User->>React: Type message: "Hello"
-    React->>React: Build JSON payload
+    User->>React: Type message
+    React->>Backend: POST /api/agent/run/stream {thread_id, parent_message_id, message}
+    Backend->>Backend: Refresh JWT if expiring
+    Backend->>SF: POST /agents/:run (KEYPAIR_JWT, Accept: text/event-stream)
     
-    React->>JWT: Generate JWT token
-    Note over JWT: Uses jsrsasign library
-    JWT->>JWT: Create header {alg: RS256, typ: JWT}
-    JWT->>JWT: Create payload {iss, sub, iat, exp}
-    JWT->>JWT: Sign with private key (RSA-SHA256)
-    JWT-->>React: Signed JWT token (valid 1 hour)
-    
-    React->>SF: POST /api/v2/.../agents/:run<br/>Header: Authorization: Bearer {JWT}<br/>Header: X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT<br/>Body: {"messages": [...]}
-    
-    SF->>Auth: Validate JWT token
-    Auth->>Auth: Verify token signature with public key
-    Auth->>Auth: Check token expiration (exp claim)
-    Auth->>Auth: Verify issuer/subject (iss/sub claims)
-    Auth->>Auth: Lookup user from qualified username
-    
-    alt JWT Invalid or Expired
-        Auth-->>SF: 401 Unauthorized
-        SF-->>React: Error: Invalid token
-        React-->>User: Display error message
-    end
-    
-    alt Public Key Mismatch
-        Auth-->>SF: 401 Unauthorized
-        SF-->>React: Error: Key verification failed
-        React-->>User: Display error message
-    end
-    
-    Auth->>RBAC: Check permissions
-    RBAC->>RBAC: Verify USAGE grant on agent
-    RBAC->>RBAC: Verify role has access
-    
-    alt Permission Denied
-        RBAC-->>SF: 403 Forbidden
-        SF-->>React: Error: Permission denied
-        React-->>User: Display error message
-    end
-    
+    SF->>Auth: Validate JWT (signature, exp, iss/sub)
+    Auth->>RBAC: Verify agent usage grants
     RBAC-->>SF: Authorization successful
-    SF->>Agent: Invoke agent with message
-    Agent->>Agent: Process with Cortex AI
-    Agent-->>SF: Return response
-    SF-->>React: 200 OK<br/>{"message": {"role": "assistant", ...}}
-    React-->>User: Display agent response
-    
-    Note over React,JWT: Token expires after 1 hour, auto-refreshed on next request
+    SF->>Agent: Invoke agent
+    Agent-->>SF: Stream SSE (metadata, deltas, response)
+    SF-->>Backend: SSE stream
+    Backend-->>React: Proxy SSE stream
+    React-->>User: Render streaming response & update parent_message_id
 ```
 
 ## Component Descriptions
@@ -143,28 +108,24 @@ sequenceDiagram
 **React Application**
 - Purpose: Single-page chat interface
 - Technology: React 18, Create React App
-- Location: localhost:3000 (development)
+- Location: localhost:3001 (development)
 - Dependencies: Node.js runtime, npm packages
-- Storage: Configuration in `.env.local`
+- Storage: Non-secret configuration in `.env.local`
 
-**JWT Generator (jsrsasign)**
-- Purpose: Client-side JWT token generation
-- Technology: jsrsasign library (browser-compatible)
-- Location: `src/services/jwtGenerator.js`
-- Algorithm: RS256 (RSA-SHA256)
-- Token Lifetime: 1 hour (configurable)
-- Auto-refresh: Generates new token when expired
+**Backend Proxy (JWT Signer)**
+- Purpose: Server-side JWT signing and REST proxy
+- Technology: Node.js + Express
+- Location: `server/index.js` (localhost:4000)
+- Secrets: Private key stored in `.env.server.local`
+- Token Lifetime: 1 hour (configurable, auto-refreshed)
 
-**JWT Token Structure**
+**JWT Token Structure (KEYPAIR_JWT)**
 ```json
 {
-  "header": {
-    "alg": "RS256",
-    "typ": "JWT"
-  },
+  "header": { "alg": "RS256", "typ": "JWT" },
   "payload": {
-    "iss": "account.USERNAME",
-    "sub": "account.USERNAME",
+    "iss": "ACCOUNT-LOC.USER.SHA256:fingerprint",
+    "sub": "ACCOUNT-LOC.USER",
     "iat": 1702648800,
     "exp": 1702652400
   },
@@ -172,19 +133,16 @@ sequenceDiagram
 }
 ```
 
-**.env.local Configuration**
-- Purpose: Stores credentials and connection details
-- Technology: Environment variables file
-- Location: Project root (gitignored)
-- Security: NEVER commit to version control
-- Contains: Private key (PEM format)
+**Environment Configuration**
+- Frontend: `.env.local` (account, user, db, schema, agent; no secrets)
+- Backend: `.env.server.local` (account, user, db, schema, agent, private key)
 
 **Snowflake REST API**
 - Purpose: API gateway for programmatic access
 - Technology: Snowflake REST API v2
 - Location: `https://{account}.snowflakecomputing.com/api/v2/`
 - Protocol: HTTPS with TLS 1.2+
-- Auth Header: `X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT`
+- Auth Header: `Authorization: Bearer <KEYPAIR_JWT>` and `X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT`
 
 **Authentication Service**
 - Purpose: Validates JWT tokens using public key
@@ -281,12 +239,12 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 ┌─────────────────────────────────────────────┐
 │ Secure Zone (Never Committed)              │
 │                                             │
-│  .env.local                                 │
-│  ├── REACT_APP_SNOWFLAKE_PRIVATE_KEY      │
-│  │   -----BEGIN PRIVATE KEY-----           │
+│  .env.server.local                          │
+│  ├── SNOWFLAKE_PRIVATE_KEY_PEM              │
+│  │   -----BEGIN PRIVATE KEY-----            │
 │  │   ...                                    │
-│  │   -----END PRIVATE KEY-----             │
-│  └── [Other connection details]            │
+│  │   -----END PRIVATE KEY-----              │
+│  ├── SNOWFLAKE_ACCOUNT / USER / DB / AGENT  │
 │                                             │
 │  rsa_key.pem (local file)                  │
 │  ├── File permissions: 0600                │
@@ -294,6 +252,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 │                                             │
 │  Security: Global .gitignore               │
 │            *.pem, *.key, .env.local        │
+│            .env.server.local               │
 └─────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────┐
@@ -311,9 +270,12 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 │ Version Control (Safe to Commit)           │
 │                                             │
 │  env.example                                │
-│  ├── REACT_APP_SNOWFLAKE_PRIVATE_KEY=     │
-│  │   "-----BEGIN PRIVATE KEY-----\n..."   │
+│  ├── REACT_APP_* (non-secret)              │
 │  └── [Template values only]                │
+│                                             │
+│  server.env.example                         │
+│  ├── SNOWFLAKE_PRIVATE_KEY_PEM (placeholder)│
+│  └── [Backend template only]               │
 │                                             │
 │  Security: No real credentials             │
 └─────────────────────────────────────────────┘
@@ -324,7 +286,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 ```
 ┌──────────────────────────────────────────────┐
 │ Trusted Zone - Developer Machine           │
-│  - localhost:3000                           │
+│  - localhost:3001                           │
 │  - .env.local with private key              │
 │  - JWT generation happens here              │
 │  - No external access                       │

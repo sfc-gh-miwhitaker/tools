@@ -16,11 +16,11 @@ This diagram shows the data model for the Cortex Agent Chat tool, including Snow
 ```mermaid
 erDiagram
     SNOWFLAKE_EXAMPLE ||--o{ SFE_CORTEX_AGENT_CHAT : contains
-    SFE_CORTEX_AGENT_CHAT ||--|| SFE_DEMO_AGENT : contains
+    SFE_CORTEX_AGENT_CHAT ||--|| SFE_REACT_DEMO_AGENT : contains
     SFE_CORTEX_CHAT_POLICY ||--o{ USER : applies_to
     USER ||--o{ PROGRAMMATIC_ACCESS_TOKEN : has
     USER ||--o{ ROLE : has
-    ROLE ||--o{ SFE_DEMO_AGENT : can_use
+    ROLE ||--o{ SFE_REACT_DEMO_AGENT : can_use
     
     SNOWFLAKE_EXAMPLE {
         string database_name PK "SNOWFLAKE_EXAMPLE"
@@ -38,8 +38,8 @@ erDiagram
         string comment "Tool schema"
     }
     
-    SFE_DEMO_AGENT {
-        string agent_name PK "SFE_DEMO_AGENT"
+    SFE_REACT_DEMO_AGENT {
+        string agent_name PK "SFE_REACT_DEMO_AGENT"
         string schema_name FK "SFE_CORTEX_AGENT_CHAT"
         string database_name FK "SNOWFLAKE_EXAMPLE"
         string language "ENGLISH"
@@ -105,7 +105,7 @@ erDiagram
 
 ### Agent Level
 
-**SFE_DEMO_AGENT**
+**SFE_REACT_DEMO_AGENT**
 - Purpose: Sample Cortex Agent for chat interactions
 - Technology: Snowflake Cortex Agent
 - Location: Within schema
@@ -152,7 +152,7 @@ erDiagram
 Account
 ├── Database: SNOWFLAKE_EXAMPLE
 │   └── Schema: SFE_CORTEX_AGENT_CHAT
-│       └── Cortex Agent: SFE_DEMO_AGENT
+│       └── Cortex Agent: SFE_REACT_DEMO_AGENT
 │
 ├── Network Policy: SFE_CORTEX_CHAT_POLICY
 │
@@ -162,7 +162,7 @@ Account
 │
 └── Roles
     └── Role: SYSADMIN
-        └── USAGE grant on SFE_DEMO_AGENT
+        └── USAGE grant on SFE_REACT_DEMO_AGENT
 ```
 
 ## Data Persistence
@@ -216,7 +216,7 @@ REACT_APP_SNOWFLAKE_PAT=...
 ```sql
 -- Agent usage grant
 GRANT USAGE ON CORTEX AGENT 
-  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_DEMO_AGENT 
+  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT 
 TO ROLE SYSADMIN;
 
 -- Schema usage grant (implicit for owner)
@@ -234,7 +234,7 @@ TO ROLE SYSADMIN;
 ```
 Role: SYSADMIN
   ↓ has USAGE grant
-Cortex Agent: SFE_DEMO_AGENT
+Cortex Agent: SFE_REACT_DEMO_AGENT
   ↓ invoked via
 REST API (with PAT for SYSADMIN role)
   ↓ processes

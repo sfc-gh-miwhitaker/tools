@@ -10,23 +10,21 @@
  *
  * Prerequisites:
  *   1. Run shared/sql/00_shared_setup.sql first (creates database and warehouse)
- *   2. SYSADMIN role access
- *   3. Cortex Agent feature enabled in your Snowflake account
- *   4. RSA key-pair generated (see README for instructions)
+ *   2. ACCOUNTADMIN role access (required to grant CORTEX_AGENT_USER role)
+ *   3. Cortex Agents feature available in your Snowflake region
+ *   4. RSA key-pair generated (run tools/01_setup.sh or see README for manual steps)
  *
- * How to Deploy:
- *   1. Generate RSA key-pair: openssl genrsa -out rsa_key.pem 2048
- *   2. Extract public key: openssl rsa -in rsa_key.pem -pubout -out rsa_key.pub
- *   3. Copy this ENTIRE script into Snowsight
- *   4. Click "Run All"
- *   5. Assign public key to your Snowflake user (see below)
- *   6. Configure local React app with .env.local
- *   7. Run npm install && npm start
+ * How to Deploy (Automated - Recommended):
+ *   1. Run: ./tools/01_setup.sh (generates keys, .env.local, and deploy_with_key.sql)
+ *   2. Edit .env.local to update your Snowflake account name
+ *   3. Copy deploy_with_key.sql into Snowsight → Run All
+ *   4. Run: npm install && npm start
  *
- * After Deployment:
- *   - Assign public key to Snowflake user (see instructions below)
- *   - Configure local React app with private key in .env.local
- *   - Run npm install && npm start
+ * How to Deploy (Manual):
+ *   1. Copy this ENTIRE script into Snowsight → Run All
+ *   2. Generate RSA key-pair and assign public key (see instructions below)
+ *   3. Configure .env.local with your credentials and private key
+ *   4. Run: npm install && npm start
  ******************************************************************************/
 
 -- ============================================================================
@@ -48,9 +46,26 @@ $$;
 -- ============================================================================
 -- CONTEXT SETTING (MANDATORY)
 -- ============================================================================
-USE ROLE SYSADMIN;
+USE ROLE ACCOUNTADMIN;  -- Required for granting CORTEX_AGENT_USER role
 USE DATABASE SNOWFLAKE_EXAMPLE;
 USE WAREHOUSE SFE_TOOLS_WH;
+
+-- ============================================================================
+-- GRANT CORTEX AGENTS ACCESS (REQUIRED PREREQUISITE)
+-- ============================================================================
+-- CRITICAL: Cortex Agents requires the CORTEX_AGENT_USER database role
+-- Without this role, CREATE CORTEX AGENT syntax will fail with:
+-- "syntax error line 1 at position 25 unexpected 'AGENT'"
+--
+-- This grants the CORTEX_AGENT_USER role to SYSADMIN so all SYSADMIN
+-- users can create and use Cortex Agents.
+--
+-- Note: CORTEX_AGENT_USER provides access to Cortex Agents only
+--       CORTEX_USER provides access to all Cortex AI features
+GRANT DATABASE ROLE SNOWFLAKE.CORTEX_AGENT_USER TO ROLE SYSADMIN;
+
+-- Switch back to SYSADMIN for object creation
+USE ROLE SYSADMIN;
 
 -- ============================================================================
 -- CREATE TOOL SCHEMA
@@ -63,23 +78,33 @@ USE SCHEMA SFE_CORTEX_AGENT_CHAT;
 -- ============================================================================
 -- CREATE SAMPLE CORTEX AGENT
 -- ============================================================================
-CREATE OR REPLACE CORTEX AGENT SFE_DEMO_AGENT
-    LANGUAGE = 'ENGLISH'
-    INSTRUCTIONS = 'You are a helpful assistant for Snowflake demonstrations. You can answer questions about:
-    - Snowflake features and capabilities
-    - Data warehousing concepts
-    - SQL query optimization
-    - Cortex AI features
+CREATE OR REPLACE AGENT SFE_REACT_DEMO_AGENT
+    COMMENT = 'TOOL: React Demo Agent - Cortex Agent for React chat interface | Author: SE Community | Expires: 2026-01-14'
+    PROFILE = '{"display_name": "SFE React Demo Agent", "avatar": "snowflake-logo.png", "color": "#29B5E8"}'
+    FROM SPECIFICATION
+    $$
+    models:
+      orchestration: auto
     
-    Be concise, accurate, and helpful. If you are unsure about something, say so clearly.
-    Format your responses with clear structure and examples when appropriate.'
-    COMMENT = 'DEMO: Sample Cortex Agent for React chat interface | Author: SE Community | Expires: 2026-01-14';
+    instructions:
+      system: "You are the SFE React Demo Agent, helping users understand Snowflake capabilities through this React chat interface. You specialize in explaining Snowflake features, data warehousing concepts, SQL optimization, and Cortex AI capabilities. Provide concise, accurate responses with clear examples. If uncertain, acknowledge it clearly. This chat interface demonstrates REST API integration with Cortex Agents using key-pair JWT authentication from a React.js application."
+      response: "Keep responses concise and well-structured. Use bullet points for lists and code blocks for SQL examples."
+      sample_questions:
+        - question: "How does this chat interface work?"
+          answer: "This React application connects to me via Snowflake's REST API using secure key-pair JWT authentication. When you send a message, it's transmitted to Snowflake where I process it using Claude AI and stream the response back in real-time."
+        - question: "What is Snowflake Cortex?"
+          answer: "Snowflake Cortex is an AI platform built into Snowflake that includes: LLM functions (COMPLETE, CHAT), AI agents like me, semantic search, and ML capabilities - all running natively in your data warehouse without moving data."
+        - question: "How do I optimize SQL queries?"
+          answer: "Key optimization techniques: 1) Add filters in WHERE clauses (push down predicates), 2) Avoid SELECT * (project only needed columns), 3) Use clustering keys for large tables, 4) Leverage materialized views for repeated aggregations, 5) Use QUALIFY for window function filtering."
+        - question: "What are key-pair JWTs?"
+          answer: "Key-pair JWT authentication uses asymmetric cryptography: you generate an RSA key-pair (private + public), assign the public key to your Snowflake user, and your application signs JWT tokens with the private key. This is more secure than passwords and doesn't require token refresh management."
+    $$;
 
 -- ============================================================================
 -- GRANT USAGE TO CURRENT ROLE
 -- ============================================================================
 -- This allows the current user/role to interact with the agent
-GRANT USAGE ON CORTEX AGENT SFE_DEMO_AGENT TO ROLE SYSADMIN;
+GRANT USAGE ON AGENT SFE_REACT_DEMO_AGENT TO ROLE SYSADMIN;
 
 -- ============================================================================
 -- INSTRUCTIONS FOR KEY-PAIR AUTHENTICATION SETUP
@@ -127,14 +152,11 @@ GRANT USAGE ON CORTEX AGENT SFE_DEMO_AGENT TO ROLE SYSADMIN;
 -- ============================================================================
 -- VERIFY AGENT CREATION
 -- ============================================================================
-SHOW CORTEX AGENTS IN SCHEMA SFE_CORTEX_AGENT_CHAT;
+-- List all agents in the schema
+SHOW AGENTS IN SCHEMA SFE_CORTEX_AGENT_CHAT;
 
-SELECT
-    SYSTEM$DESCRIBE_CORTEX_AGENT(
-        'SNOWFLAKE_EXAMPLE',
-        'SFE_CORTEX_AGENT_CHAT',
-        'SFE_DEMO_AGENT'
-    ) AS agent_details;
+-- Describe the specific agent (shows full configuration)
+DESC AGENT SFE_REACT_DEMO_AGENT;
 
 -- ============================================================================
 -- DEPLOYMENT COMPLETE
@@ -143,11 +165,14 @@ SELECT
     '✅ DEPLOYMENT COMPLETE' AS status,
     CURRENT_TIMESTAMP() AS completed_at,
     'Cortex Agent Chat (React UI)' AS tool,
+    'SFE_REACT_DEMO_AGENT' AS agent_name,
     '2026-01-14' AS expires,
-    'Next steps:' AS next_step,
-    '1. Generate RSA key-pair (see instructions above)' AS step_1,
-    '2. Assign public key to your Snowflake user' AS step_2,
-    '3. Configure .env.local with private key' AS step_3,
-    '4. Run: npm install && npm start' AS step_4,
-    '5. Open: http://localhost:3000' AS step_5;
+    'If using automated setup (tools/01_setup.sh):' AS next_steps_automated,
+    '  1. Edit .env.local (update SNOWFLAKE_ACCOUNT)' AS auto_step_1,
+    '  2. Run: npm install && npm start' AS auto_step_2,
+    '  3. Open: http://localhost:3001' AS auto_step_3,
+    'If using manual setup:' AS next_steps_manual,
+    '  1. Generate RSA key-pair and assign public key' AS manual_step_1,
+    '  2. Configure .env.local with credentials' AS manual_step_2,
+    '  3. Run: npm install && npm start' AS manual_step_3;
 
