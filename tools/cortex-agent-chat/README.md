@@ -111,8 +111,8 @@ nano .env.server.local
 nano .env.local
 
 # Example:
-SNOWFLAKE_ACCOUNT=xy12345.us-east-1      # backend (server)
-REACT_APP_SNOWFLAKE_ACCOUNT=xy12345.us-east-1  # frontend (non-secret)
+SNOWFLAKE_ACCOUNT=xy12345.us-east-1      # set once; copy same value to frontend
+REACT_APP_SNOWFLAKE_ACCOUNT=xy12345.us-east-1  # mirror of SNOWFLAKE_ACCOUNT
 ```
 
 **Step 3: Deploy to Snowflake (2 minutes)**
@@ -244,51 +244,37 @@ npm run dev   # starts backend :4000 and frontend :3001
 │  │ React Application (Snowflake-branded UI)                       │ │
 │  │                                                                 │ │
 │  │  1. User types message                                         │ │
-│  │  2. jwtGenerator.js signs JWT with private key (RS256)        │ │
-│  │  3. snowflakeApi.js sends REST request with JWT token         │ │
+│  │  2. UI calls backend proxy (/api/threads, /api/agent/run)      │ │
+│  │  3. Streams responses via SSE from proxy                       │ │
 │  │                                                                 │ │
 │  │  Components:                                                    │ │
 │  │  • ChatInterface (UI)                                          │ │
-│  │  • JWTTokenManager (auth)                                      │ │
-│  │  • snowflakeApi.js (REST client)                               │ │
+│  │  • snowflakeApi.js (calls local backend)                       │ │
 │  └─────────────────────────────┬──────────────────────────────────┘ │
 └─────────────────────────────────┼─────────────────────────────────────┘
-                                  │
-                                  │ HTTPS
-                                  │ Authorization: Bearer {JWT_TOKEN}
-                                  │ X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
+                                  │ HTTP (localhost:4000)
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 🚀 Backend Proxy (Express, localhost:4000)                          │
+│  • Signs KEYPAIR_JWT with private key from .env.server.local        │
+│  • POST /api/threads → Snowflake /api/v2/cortex/threads            │
+│  • POST /api/agent/run(+/stream) → Snowflake agent:run             │
+└─────────────────────────────────┬─────────────────────────────────────┘
+                                  │ HTTPS (TLS)
                                   ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │ ❄️  Snowflake Account                                                │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ REST API Endpoint                                              │ │
-│  │ POST /api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run│ │
-│  │                                                                 │ │
-│  │ 1. Validates JWT signature with user's public key              │ │
-│  │ 2. Routes request to Cortex Agent                             │ │
-│  └─────────────────────────────┬──────────────────────────────────┘ │
-│                                 │                                    │
-│                                 ▼                                    │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ Cortex Agent: SFE_REACT_DEMO_AGENT                                   │ │
-│  │                                                                 │ │
-│  │ • Processes user message                                       │ │
-│  │ • Generates AI-powered response                                │ │
-│  │ • Streams result via Server-Sent Events (SSE)                  │ │
-│  └─────────────────────────────┬──────────────────────────────────┘ │
-└─────────────────────────────────┼─────────────────────────────────────┘
-                                  │
-                                  │ SSE: data: {"chunk": "response..."}
-                                  ▼
-                            React UI updates in real-time
+│  • Validates KEYPAIR_JWT (public key on user)                       │
+│  • Runs Cortex Agent: SFE_REACT_DEMO_AGENT                          │
+│  • Streams SSE events (metadata, deltas, response)                  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 **Key Security Properties:**
-- 🔐 Private key never leaves the browser
-- 🔑 JWT tokens signed client-side (no server-side auth middleware needed)
-- ⏰ Tokens auto-refresh every hour (transparent to user)
-- 🔒 Public key validation in Snowflake (asymmetric cryptography)
+- 🔐 Private key stays server-side (.env.server.local); never in the browser
+- 🔑 JWT tokens signed in the backend proxy; frontend sees only thread/message data
+- ⏰ Tokens auto-refreshed server-side (1h default)
+- 🔒 Snowflake validates signature against stored public key
 
 See `diagrams/` for detailed sequence diagrams (auth-flow, data-flow, network-flow).
 
@@ -296,86 +282,55 @@ See `diagrams/` for detailed sequence diagrams (auth-flow, data-flow, network-fl
 
 ## API Integration Details
 
-### REST Endpoint
+### Backend API Surface (what the React app calls)
 
-```
-POST https://{account}.snowflakecomputing.com/api/v2/databases/{database}/schemas/{schema}/agents/{agent}:run
-```
+- `POST /api/threads`  
+  Creates a Snowflake thread (proxies to `/api/v2/cortex/threads`). Returns `{ thread_id }`.
 
-**Example:**
-```
-https://xy12345.snowflakecomputing.com/api/v2/databases/SNOWFLAKE_EXAMPLE/schemas/SFE_CORTEX_AGENT_CHAT/agents/SFE_REACT_DEMO_AGENT:run
-```
+- `POST /api/agent/run`  
+  Non-streaming agent call (proxies to `/api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run`).
 
-### Request Headers
+- `POST /api/agent/run/stream`  
+  Streaming agent call (SSE) to the same Snowflake endpoint; forwards Snowflake SSE events to the browser.
+
+### Sample streaming request (to backend)
 
 ```http
-POST /api/v2/databases/SNOWFLAKE_EXAMPLE/schemas/SFE_CORTEX_AGENT_CHAT/agents/SFE_REACT_DEMO_AGENT:run
-Host: xy12345.snowflakecomputing.com
+POST /api/agent/run/stream
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT
-```
 
-### Request Body
-
-```json
 {
-  "messages": [
-    {
-      "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": "What are the top 5 customers by revenue?"
-        }
-      ]
-    }
-  ]
+  "threadId": 12345,
+  "parentMessageId": 0,
+  "message": "What are the top 5 customers by revenue?"
 }
 ```
 
-### Response Format (SSE Stream)
+### Streaming response (from backend → browser)
 
 ```
-data: {"chunk": "Based on the data, "}
-data: {"chunk": "the top 5 customers "}
-data: {"chunk": "are:\n1. Acme Corp - $125k\n..."}
-data: [DONE]
+event: metadata
+data: {"role":"assistant","message_id":456}
+
+event: response.text.delta
+data: {"delta":"Based on the data, "}
+
+event: response.text.delta
+data: {"delta":"the top 5 customers are ..."}
+
+event: response.completed
+data: {"text":"Based on the data, the top 5 customers are ..."}
 ```
 
-### Key-Pair JWT Authentication
+### Key-Pair JWT Authentication (server-side)
 
-**How It Works:**
-1. **Client-side JWT generation** - React app uses `jsrsasign` to sign tokens with private key
-2. **Token structure:**
-   ```json
-   {
-     "header": {
-       "alg": "RS256",
-       "typ": "JWT"
-     },
-     "payload": {
-       "iss": "ACCOUNT.USER",
-       "sub": "ACCOUNT.USER",
-       "iat": 1702665600,
-       "exp": 1702669200
-     }
-   }
-   ```
-3. **Snowflake validation** - Verifies JWT signature using user's public key
-4. **Auto-refresh** - `JWTTokenManager` generates new tokens before expiration
-
-**Token Lifetime:**
-- Expires 1 hour after generation
-- Auto-refreshed transparently by `JWTTokenManager`
-- No user intervention needed
-
-**Security Benefits:**
-- ✅ No password in requests
-- ✅ No expiring PAT tokens to manage
-- ✅ Private key never transmitted (only JWT signature)
-- ✅ Asymmetric cryptography (public key can't generate valid tokens)
+- **Signer location:** `server/index.js` (Express) using the private key from `.env.server.local`.
+- **Algorithm:** RS256; issuer includes the public key fingerprint per Snowflake requirements.
+- **Headers sent to Snowflake:**  
+  `Authorization: Bearer <KEYPAIR_JWT>`  
+  `X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT`
+- **Token lifetime:** 1 hour; cached and refreshed in the backend proxy.
+- **Security:** Private key never leaves the backend; Snowflake validates the signature against the user’s stored public key.
 
 ---
 
@@ -386,9 +341,11 @@ cortex-agent-chat/
 ├── tools/
 │   ├── 01_setup.sh                # ⚡ Automated setup (macOS/Linux)
 │   │                              #    - Generates RSA key-pair
-│   │                              #    - Creates .env.local
+│   │                              #    - Creates .env.server.local (backend secrets) + .env.local (frontend)
 │   │                              #    - Generates deploy_with_key.sql
 │   └── 01_setup.bat               # ⚡ Automated setup (Windows)
+├── server/
+│   └── index.js                   # 🚀 Express backend proxy (KEYPAIR_JWT signer + Snowflake proxy)
 ├── src/
 │   ├── components/
 │   │   ├── ChatInterface.js       # 💬 Main chat container (Snowflake-branded header)
@@ -399,12 +356,8 @@ cortex-agent-chat/
 │   │   ├── MessageInput.js        # ⌨️  User input field
 │   │   └── Message.js             # 💬 Individual message bubble
 │   ├── services/
-│   │   ├── jwtGenerator.js        # 🔐 JWT token generation (jsrsasign)
-│   │   │                          #    - generateJWT() function
-│   │   │                          #    - JWTTokenManager class
-│   │   └── snowflakeApi.js        # 🌐 REST API client
-│   │                              #    - sendMessageToAgent()
-│   │                              #    - sendMessageToAgentStream() (SSE)
+│   │   ├── jwtGenerator.js        # (legacy) Client-side JWT generator (not used; backend signs now)
+│   │   └── snowflakeApi.js        # 🌐 Client → backend proxy (threads + agent:run, SSE)
 │   ├── App.js                     # 🏠 Root component
 │   ├── App.css                    # 🎨 Global Snowflake color variables
 │   └── index.js                   # 🚀 React entry point
@@ -414,23 +367,26 @@ cortex-agent-chat/
 │   └── network-flow.md            # 📊 Network architecture
 ├── deploy.sql                     # ❄️  Snowflake setup (agent creation)
 ├── teardown.sql                   # 🧹 Cleanup script
-├── env.example                    # 📋 Template for .env.local (manual setup)
-├── .gitignore                     # 🚫 Excludes .env.local, *.pem, *.key
+├── env.example                    # 📋 Template for .env.local (frontend, non-secret)
+├── server.env.example             # 📋 Template for .env.server.local (backend, holds private key)
+├── .gitignore                     # 🚫 Excludes .env*, *.pem, *.key
 └── README.md                      # 📖 This file
 ```
 
 **Generated Files (by setup script, gitignored):**
 - `rsa_key.pem` - Private key (2048-bit RSA)
 - `rsa_key.pub` - Public key
-- `.env.local` - Configuration with private key
+- `.env.server.local` - Backend config with private key (do not commit)
+- `.env.local` - Frontend config (non-secret)
 - `deploy_with_key.sql` - Combined SQL (deploy + key assignment)
 
 **Key Files to Understand:**
 
 | File | Purpose | Key Concept |
 |------|---------|-------------|
-| `jwtGenerator.js` | Generates JWT tokens client-side | Uses `jsrsasign` to sign tokens with RSA private key |
-| `snowflakeApi.js` | REST API calls to Snowflake | Adds `Authorization: Bearer {JWT}` header |
+| `server/index.js` | Backend proxy + KEYPAIR_JWT signing | Signs JWTs server-side; proxies to Snowflake |
+| `snowflakeApi.js` | Client → backend proxy calls | Threads + agent:run (+ streaming) |
+| `jwtGenerator.js` | (Legacy) Client-side signing reference | Kept for reference; not used in flow |
 | `ChatInterface.js` | Main UI component | Manages chat state, displays messages |
 | `ThinkingIndicator.js` | Loading animation | Visual feedback during agent processing |
 | `App.css` | Global styles | Snowflake color palette (cyan, charcoal, white) |
@@ -443,10 +399,12 @@ cortex-agent-chat/
 ### Available Scripts
 
 ```bash
-npm install       # Install dependencies (React, jsrsasign, etc.)
-npm start         # Start dev server (http://localhost:3001)
-npm run build     # Create production build
-npm test          # Run test suite (if tests added)
+npm install         # Install dependencies
+npm run dev         # Start backend (:4000) + frontend (:3001) concurrently
+npm run server      # Start backend proxy only
+npm start           # Start frontend only (expects backend already running)
+npm run build       # Create production build of the frontend
+npm test            # Run test suite (if tests added)
 ```
 
 ### UI Customization
@@ -475,21 +433,21 @@ npm test          # Run test suite (if tests added)
 
 ### Quick Verification (After Running Setup Script)
 
-If you used `tools/01_setup.sh` (recommended), the script already created your keys. Verify they exist:
+If you used `tools/01_setup.sh` (recommended), the script already created your keys and env files. Verify they exist:
 
 ```bash
-# Check key files were generated
-ls -l rsa_key.pem rsa_key.pub
-# Should see: rsa_key.pem (private), rsa_key.pub (public)
+# Check key files and backend env
+ls -l rsa_key.pem rsa_key.pub .env.server.local .env.local
+# Should see rsa_key.pem (private), rsa_key.pub (public), .env.server.local (backend, has private key), .env.local (frontend, no secrets)
 
-# Check .env.local was created
-grep SNOWFLAKE_USER .env.local
-# Should see: REACT_APP_SNOWFLAKE_USER=YOUR_USERNAME
+# Sanity check private key present only in backend env
+grep SNOWFLAKE_PRIVATE_KEY_PEM .env.server.local
+grep SNOWFLAKE_PRIVATE_KEY_PEM .env.local   # should return nothing
 ```
 
 ### Test Key-Pair Authentication
 
-Before running the React app, verify your key-pair setup:
+Before running the app, you can verify your key-pair setup with Snow CLI (optional):
 
 ```bash
 # Test Snowflake connection with key-pair
@@ -727,11 +685,11 @@ snow sql -q "DESC USER YOUR_USERNAME;" | grep RSA_PUBLIC_KEY_FP
 # ☐ Agent exists
 snow sql -q "SHOW AGENTS IN SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT;"
 
-# ☐ .env.local configured
+# ☐ Frontend env configured (non-secret)
 grep REACT_APP .env.local
 
-# ☐ Dependencies installed
-ls node_modules/jsrsasign
+# ☐ Backend env has private key (not in frontend)
+grep SNOWFLAKE_PRIVATE_KEY_PEM .env.server.local
 
 # ☐ Connection test passes
 snow connection test --account xy12345.us-east-1 --user YOUR_USERNAME --private-key-path rsa_key.pem
@@ -751,7 +709,8 @@ snow connection test --account xy12345.us-east-1 --user YOUR_USERNAME --private-
 
 | Rule | Why It Matters |
 |------|----------------|
-| ❌ **NEVER commit `.env.local`** | Contains private key (full account access) |
+| ❌ **NEVER commit `.env.server.local`** | Contains private key (full account access) |
+| ❌ **NEVER commit `.env.local`** | Environment config; keep non-secret only |
 | ❌ **NEVER commit `*.pem` or `*.key` files** | Private keys grant permanent access |
 | ❌ **NEVER share private keys** | Each user needs their own key-pair |
 | ✅ **Store private keys securely** | Use password manager or secure vault |
@@ -774,7 +733,8 @@ snow connection test --account xy12345.us-east-1 --user YOUR_USERNAME --private-
 
 ```gitignore
 # Automatically excluded (global ignore):
-.env.local           # Your private key configuration
+.env.server.local    # Backend secrets (private key)
+.env.local           # Frontend config (non-secret)
 .env                 # Any environment files
 *.env                # All .env variants
 *.pem                # RSA private keys
@@ -984,7 +944,7 @@ npm install
 
 ### Technical References
 - [React.js Documentation](https://reactjs.org/docs) - React framework guide
-- [jsrsasign Library](https://kjur.github.io/jsrsasign/) - JWT signing library
+- [Express.js](https://expressjs.com/) - Backend proxy framework
 - [OpenSSL Documentation](https://www.openssl.org/docs/) - Key generation commands
 - [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) - Streaming protocol
 
