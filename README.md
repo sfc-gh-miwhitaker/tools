@@ -29,6 +29,7 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
 | [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, ACCOUNT_USAGE | ✅ Active |
 | [Cortex Cost Calculator](/tools/cortex-cost-calculator/) | Cortex AI usage monitoring & forecasting | Streamlit, ACCOUNT_USAGE, Serverless Tasks | ✅ Active |
+| [Semantic View Enhancer](/tools/semantic-view-enhancer/) | AI-enhanced semantic view descriptions | Cortex AI Complete, Semantic Views, Python Procedures | ✅ Active |
 
 ---
 
@@ -47,7 +48,8 @@ tools/
     ├── contact-form-streamlit/     # Streamlit contact form
     ├── api-data-fetcher/           # API fetch procedure
     ├── replication-cost-calculator/ # DR cost estimator
-    └── cortex-cost-calculator/     # Cortex AI cost monitoring
+    ├── cortex-cost-calculator/     # Cortex AI cost monitoring
+    └── semantic-view-enhancer/     # AI-enhanced semantic views
 ```
 
 ---
@@ -140,4 +142,4 @@ All tools in this collection follow these standards:
 
 ---
 
-*SE Community • Tools Collection • Last Updated: 2025-12-11*
+*SE Community • Tools Collection • Last Updated: 2025-12-15*
