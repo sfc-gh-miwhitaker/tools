@@ -18,6 +18,21 @@
 --   - SHOW AGENTS (agent enumeration)
 -- =============================================================================
 
+-- =============================================================================
+-- EXPIRATION CHECK (MANDATORY)
+-- =============================================================================
+EXECUTE IMMEDIATE
+$$
+DECLARE
+    v_expiration_date DATE := '2026-01-10';
+    tool_expired EXCEPTION (-20001, 'TOOL EXPIRED: This tool expired on 2026-01-10. Please check for an updated version.');
+BEGIN
+    IF (CURRENT_DATE() > v_expiration_date) THEN
+        RAISE tool_expired;
+    END IF;
+END;
+$$;
+
 -- Grant serverless task privilege (required for ACCOUNTADMIN)
 GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE ACCOUNTADMIN;
 
@@ -27,7 +42,7 @@ USE DATABASE SNOWFLAKE_EXAMPLE;
 -- SCHEMA SETUP
 -- -----------------------------------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS WALLMONITOR
-    COMMENT = 'Wallmonitor: Agent-focused Cortex AI monitoring with real-time observability';
+    COMMENT = 'DEMO: Wallmonitor - Agent-focused Cortex AI monitoring with real-time observability | Expires: 2026-01-10';
 
 USE SCHEMA WALLMONITOR;
 
@@ -47,7 +62,7 @@ CREATE TABLE IF NOT EXISTS AGENT_REGISTRY (
     notes STRING,
     PRIMARY KEY (agent_database, agent_schema, agent_name)
 )
-COMMENT = 'Registry of Cortex Agents to monitor. Auto-populated by DISCOVER_AGENTS() procedure.';
+COMMENT = 'DEMO: Registry of Cortex Agents to monitor. Auto-populated by DISCOVER_AGENTS() procedure. | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- PROCEDURE: DISCOVER_AGENTS
@@ -60,7 +75,7 @@ CREATE OR REPLACE PROCEDURE DISCOVER_AGENTS(
 )
 RETURNS STRING
 LANGUAGE JAVASCRIPT
-COMMENT = 'Discovers Cortex Agents and adds them to AGENT_REGISTRY. Use include/exclude patterns to filter.'
+COMMENT = 'DEMO: Discovers Cortex Agents and adds them to AGENT_REGISTRY. Use include/exclude patterns to filter. | Expires: 2026-01-10'
 AS
 $$
     // Query to find all agents in the account
@@ -173,7 +188,7 @@ CREATE TABLE IF NOT EXISTS AGENT_EVENTS_SNAPSHOT (
     raw_attributes VARIANT,
     loaded_at TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
 )
-COMMENT = 'Snapshot of agent events, refreshed every 10 minutes by serverless task';
+COMMENT = 'DEMO: Snapshot of agent events, refreshed every 10 minutes by serverless task | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- PROCEDURE: REFRESH_AGENT_EVENTS
@@ -182,7 +197,7 @@ COMMENT = 'Snapshot of agent events, refreshed every 10 minutes by serverless ta
 CREATE OR REPLACE PROCEDURE REFRESH_AGENT_EVENTS(LOOKBACK_HOURS FLOAT DEFAULT 24)
 RETURNS STRING
 LANGUAGE SQL
-COMMENT = 'Refreshes AGENT_EVENTS_SNAPSHOT table with latest events from all active agents'
+COMMENT = 'DEMO: Refreshes AGENT_EVENTS_SNAPSHOT table with latest events from all active agents | Expires: 2026-01-10'
 AS
 $$
 DECLARE
@@ -272,7 +287,7 @@ BEGIN
     CREATE TASK REFRESH_AGENT_EVENTS_TASK
         SCHEDULE = '10 minute'
         USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
-        COMMENT = 'Auto-refresh agent events every 10 minutes (serverless)'
+        COMMENT = 'DEMO: Auto-refresh agent events every 10 minutes (serverless) | Expires: 2026-01-10'
     AS
         CALL REFRESH_AGENT_EVENTS(:LOOKBACK_HOURS);
     
@@ -328,7 +343,7 @@ SELECT
     
 FROM AGENT_EVENTS_SNAPSHOT;
 
-COMMENT ON VIEW AGENT_EVENTS IS 'Unified agent events (auto-refreshed every 10 minutes via serverless task)';
+COMMENT ON VIEW AGENT_EVENTS IS 'DEMO: Unified agent events (auto-refreshed every 10 minutes via serverless task) | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- VIEW: THREAD_ACTIVITY
@@ -374,7 +389,7 @@ FROM AGENT_EVENTS
 WHERE thread_id IS NOT NULL
 GROUP BY agent_full_name, thread_id, user_id;
 
-COMMENT ON VIEW THREAD_ACTIVITY IS 'Thread-level aggregations showing conversation flows, tokens, and performance';
+COMMENT ON VIEW THREAD_ACTIVITY IS 'DEMO: Thread-level aggregations showing conversation flows, tokens, and performance | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- VIEW: AGENT_METRICS
@@ -432,7 +447,7 @@ SELECT
 FROM AGENT_EVENTS
 GROUP BY agent_full_name, agent_database, agent_schema, agent_name;
 
-COMMENT ON VIEW AGENT_METRICS IS 'Per-agent performance metrics, token usage, and error rates';
+COMMENT ON VIEW AGENT_METRICS IS 'DEMO: Per-agent performance metrics, token usage, and error rates | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- VIEW: REALTIME_KPI
@@ -488,7 +503,7 @@ SELECT
     
 FROM current_period c, previous_period p;
 
-COMMENT ON VIEW REALTIME_KPI IS 'Real-time KPIs for last hour with hour-over-hour comparison';
+COMMENT ON VIEW REALTIME_KPI IS 'DEMO: Real-time KPIs for last hour with hour-over-hour comparison | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- VIEW: HOURLY_THREAD_ACTIVITY
@@ -517,7 +532,7 @@ SELECT
 FROM AGENT_EVENTS
 GROUP BY event_hour, agent_full_name;
 
-COMMENT ON VIEW HOURLY_THREAD_ACTIVITY IS 'Hourly aggregations for time-series dashboard charts';
+COMMENT ON VIEW HOURLY_THREAD_ACTIVITY IS 'DEMO: Hourly aggregations for time-series dashboard charts | Expires: 2026-01-10';
 
 -- -----------------------------------------------------------------------------
 -- VIEW: THREAD_TIMELINE
@@ -554,7 +569,7 @@ SELECT
 FROM AGENT_EVENTS
 WHERE thread_id IS NOT NULL;
 
-COMMENT ON VIEW THREAD_TIMELINE IS 'Chronological event timeline within each thread for detailed drill-down (use ORDER BY in queries)';
+COMMENT ON VIEW THREAD_TIMELINE IS 'DEMO: Chronological event timeline within each thread for detailed drill-down (use ORDER BY in queries) | Expires: 2026-01-10';
 
 -- =============================================================================
 -- QUICK START (Auto-Setup)
