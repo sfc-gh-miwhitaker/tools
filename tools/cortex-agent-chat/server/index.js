@@ -309,17 +309,30 @@ app.post('/api/agent/run/stream', async (req, res) => {
       Connection: 'keep-alive'
     });
 
-    const stream = response.body;
+    // Handle Web Stream (Fetch API) using reader
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    stream.on('data', (chunk) => {
-      res.write(chunk);
+    // Handle client disconnect
+    let cancelled = false;
+    req.on('close', () => {
+      cancelled = true;
+      reader.cancel().catch(() => {});
     });
 
-    stream.on('end', () => {
-      res.end();
-    });
+    try {
+      while (!cancelled) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          res.end();
+          break;
+        }
 
-    stream.on('error', (err) => {
+        // Write the chunk to the response
+        res.write(value);
+      }
+    } catch (err) {
       console.error('Streaming error from Snowflake:', err);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Streaming error', detail: err.message });
@@ -327,13 +340,7 @@ app.post('/api/agent/run/stream', async (req, res) => {
         res.write(`event: error\ndata: ${JSON.stringify({ message: err.message })}\n\n`);
         res.end();
       }
-    });
-
-    req.on('close', () => {
-      if (!response.body?.locked && response.body?.destroy) {
-        response.body.destroy();
-      }
-    });
+    }
   } catch (err) {
     console.error('Agent run (stream) error:', err);
     if (!res.headersSent) {

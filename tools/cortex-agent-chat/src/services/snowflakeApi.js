@@ -38,7 +38,7 @@ const buildHeaders = (accept = 'application/json') => ({
   Accept: accept
 });
 
-export const createThread = async (originApplication = 'cortex-agent-chat') => {
+export const createThread = async (originApplication = 'cortex-chat') => {
   const response = await fetch(buildBackendUrl('/api/threads'), {
     method: 'POST',
     headers: buildHeaders(),

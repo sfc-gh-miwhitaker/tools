@@ -41,6 +41,7 @@ const ChatInterface = ({ config }) => {
       if (initializingThreadRef.current) return;
       initializingThreadRef.current = true;
       setThreadReady(false);
+      setError(null); // Clear any previous errors
       try {
         const id = await createThread();
         if (!cancelled) {
@@ -51,7 +52,8 @@ const ChatInterface = ({ config }) => {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(`Thread setup failed: ${err.message}`);
+          console.error('Thread initialization failed:', err);
+          setError(`Unable to connect to Snowflake agent. ${err.message}`);
           setThreadReady(false);
         }
       } finally {
@@ -179,6 +181,27 @@ const ChatInterface = ({ config }) => {
     await handleStreamingResponse(content);
   };
 
+  const retryConnection = async () => {
+    if (streamAbortRef.current) {
+      streamAbortRef.current.abort();
+      streamAbortRef.current = null;
+    }
+    
+    setError(null);
+    setThreadReady(false);
+    
+    try {
+      const id = await createThread();
+      setThreadId(id);
+      setParentMessageId(0);
+      setThreadReady(true);
+    } catch (err) {
+      console.error('Retry connection failed:', err);
+      setError(`Unable to connect to Snowflake agent. ${err.message}`);
+      setThreadReady(false);
+    }
+  };
+
   const clearChat = () => {
     if (streamAbortRef.current) {
       streamAbortRef.current.abort();
@@ -226,8 +249,15 @@ const ChatInterface = ({ config }) => {
 
       {error && (
         <div className="error-banner">
-          <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)}>✕</button>
+          <div className="error-content">
+            <span>⚠️ {error}</span>
+            {!threadReady && (
+              <button className="retry-button" onClick={retryConnection}>
+                🔄 Retry Connection
+              </button>
+            )}
+          </div>
+          <button className="close-button" onClick={() => setError(null)}>✕</button>
         </div>
       )}
 
