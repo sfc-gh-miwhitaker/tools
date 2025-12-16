@@ -28,10 +28,9 @@ fi
 
 echo "Generating RSA key-pair..."
 
-# Generate private key (2048-bit RSA in PKCS#1 format)
-# Using PKCS#1 for better jsrsasign compatibility
-# -traditional flag forces PKCS#1 format (OpenSSL 3.x defaults to PKCS#8)
-openssl genrsa -traditional -out rsa_key.pem 2048 2>/dev/null
+# Generate private key (2048-bit RSA in PKCS#8 format)
+# PKCS#8 is required by Snow CLI and works with backend JWT generation
+openssl genpkey -algorithm RSA -out rsa_key.pem -pkeyopt rsa_keygen_bits:2048 2>/dev/null
 
 # Extract public key
 openssl rsa -in rsa_key.pem -pubout -out rsa_key.pub 2>/dev/null
