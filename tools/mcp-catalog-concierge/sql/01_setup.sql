@@ -47,7 +47,7 @@ LANGUAGE SQL
 COMMENT = 'DEMO: Returns a JSON summary of tables/views in the current schema. Expires: 2026-02-04'
 AS
 $$
-SELECT OBJECT_CONSTRUCT(
+OBJECT_CONSTRUCT(
   'database', CURRENT_DATABASE(),
   'schema', CURRENT_SCHEMA(),
   'tables', (
@@ -72,7 +72,7 @@ SELECT OBJECT_CONSTRUCT(
       LIMIT max_results
     ) t
   )
-);
+)
 $$;
 
 
