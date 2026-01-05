@@ -12,7 +12,6 @@
 USE ROLE ACCOUNTADMIN;
 
 -- Assumes context + variables already set by sql/00_config.sql and sql/01_setup.sql.
-DO $$
 DECLARE
     spec STRING;
     stmt STRING;
@@ -41,14 +40,13 @@ tools:
         required: ["max_results"]
 $$;
 
-    spec := REPLACE(spec, '__LIST_SCHEMA_OBJECTS_FQN__', :demo_db || '.' || :project_schema || '.LIST_SCHEMA_OBJECTS');
-    spec := REPLACE(spec, '__WAREHOUSE__', :warehouse_name);
+    spec := REPLACE(spec, '__LIST_SCHEMA_OBJECTS_FQN__', $demo_db || '.' || $project_schema || '.LIST_SCHEMA_OBJECTS');
+    spec := REPLACE(spec, '__WAREHOUSE__', $warehouse_name);
 
-    stmt := 'CREATE OR REPLACE MCP SERVER ' || :demo_db || '.' || :project_schema || '.' || :mcp_server_name || ' ' ||
+    stmt := 'CREATE OR REPLACE MCP SERVER ' || $demo_db || '.' || $project_schema || '.' || $mcp_server_name || ' ' ||
             'FROM SPECIFICATION $$' || spec || '$$ ' ||
-            'COMMENT = ''DEMO: Snowflake-managed MCP server for VS Code clients. Expires: ' || :demo_expires_on || '''';
+            'COMMENT = ''DEMO: Snowflake-managed MCP server for VS Code clients. Expires: ' || $demo_expires_on || '''';
     EXECUTE IMMEDIATE stmt;
 END;
-$$;
 
 

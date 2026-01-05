@@ -12,31 +12,29 @@
 USE ROLE ACCOUNTADMIN;
 
 -- Context (variables set by sql/00_config.sql)
-DO $$
 DECLARE
     stmt STRING;
 BEGIN
-    stmt := 'CREATE DATABASE IF NOT EXISTS ' || :demo_db ||
+    stmt := 'CREATE DATABASE IF NOT EXISTS ' || $demo_db ||
             ' COMMENT = ''DEMO: Shared demo database for SE Community reference implementations.''';
     EXECUTE IMMEDIATE stmt;
 
-    stmt := 'CREATE SCHEMA IF NOT EXISTS ' || :demo_db || '.' || :project_schema ||
-            ' COMMENT = ''DEMO: MCP Snowflake Bridge (VS Code). Expires: ' || :demo_expires_on || '''';
+    stmt := 'CREATE SCHEMA IF NOT EXISTS ' || $demo_db || '.' || $project_schema ||
+            ' COMMENT = ''DEMO: MCP Snowflake Bridge (VS Code). Expires: ' || $demo_expires_on || '''';
     EXECUTE IMMEDIATE stmt;
 
-    stmt := 'CREATE OR REPLACE WAREHOUSE ' || :warehouse_name || ' WITH ' ||
+    stmt := 'CREATE OR REPLACE WAREHOUSE ' || $warehouse_name || ' WITH ' ||
             'WAREHOUSE_SIZE = ''X-SMALL'' ' ||
             'AUTO_SUSPEND = 60 ' ||
             'AUTO_RESUME = TRUE ' ||
             'INITIALLY_SUSPENDED = TRUE ' ||
-            'COMMENT = ''DEMO: MCP Snowflake Bridge warehouse. Expires: ' || :demo_expires_on || '''';
+            'COMMENT = ''DEMO: MCP Snowflake Bridge warehouse. Expires: ' || $demo_expires_on || '''';
     EXECUTE IMMEDIATE stmt;
 
-    EXECUTE IMMEDIATE 'USE DATABASE ' || :demo_db;
-    EXECUTE IMMEDIATE 'USE SCHEMA ' || :demo_db || '.' || :project_schema;
-    EXECUTE IMMEDIATE 'USE WAREHOUSE ' || :warehouse_name;
+    EXECUTE IMMEDIATE 'USE DATABASE ' || $demo_db;
+    EXECUTE IMMEDIATE 'USE SCHEMA ' || $demo_db || '.' || $project_schema;
+    EXECUTE IMMEDIATE 'USE WAREHOUSE ' || $warehouse_name;
 END;
-$$;
 
 -- -----------------------------------------------------------------------------
 -- Helper function for MCP clients (GENERIC tool)

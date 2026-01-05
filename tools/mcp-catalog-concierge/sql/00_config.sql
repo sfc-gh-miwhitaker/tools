@@ -17,17 +17,14 @@ USE ROLE ACCOUNTADMIN;
 -- =============================================================================
 SET demo_expires_on = '2026-02-04';
 
-DO $$
 DECLARE
-    expires_on DATE DEFAULT TO_DATE(:demo_expires_on);
+    expires_on DATE DEFAULT TO_DATE($demo_expires_on);
     demo_expired EXCEPTION (-20001, 'ERROR: This demo expired on 2026-02-04. Please get an updated version.');
 BEGIN
     IF (CURRENT_DATE() > expires_on) THEN
         RAISE demo_expired;
     END IF;
-    RETURN 'OK: Demo is current (' || :demo_expires_on || ').';
 END;
-$$;
 
 -- =============================================================================
 -- Configuration
