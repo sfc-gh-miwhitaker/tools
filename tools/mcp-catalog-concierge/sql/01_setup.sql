@@ -47,32 +47,30 @@ LANGUAGE SQL
 COMMENT = 'DEMO: Returns a JSON summary of tables/views in the current schema. Expires: 2026-02-04'
 AS
 $$
-OBJECT_CONSTRUCT(
+SELECT OBJECT_CONSTRUCT(
   'database', CURRENT_DATABASE(),
   'schema', CURRENT_SCHEMA(),
-  'tables', (
-    SELECT COALESCE(
-      ARRAY_AGG(
-        OBJECT_CONSTRUCT(
-          'name', t.table_name,
-          'type', t.table_type,
-          'comment', t.comment
-        )
-      ),
-      ARRAY_CONSTRUCT()
-    )
-    FROM (
-      SELECT
-        table_name,
-        table_type,
-        comment
-      FROM INFORMATION_SCHEMA.TABLES
-      WHERE table_schema = CURRENT_SCHEMA()
-      ORDER BY table_name
-      LIMIT max_results
-    ) t
+  'tables', COALESCE(
+    ARRAY_AGG(
+      OBJECT_CONSTRUCT(
+        'name', t.table_name,
+        'type', t.table_type,
+        'comment', t.comment
+      )
+    ) WITHIN GROUP (ORDER BY t.table_name),
+    ARRAY_CONSTRUCT()
   )
 )
+FROM (
+  SELECT
+    table_name,
+    table_type,
+    comment
+  FROM INFORMATION_SCHEMA.TABLES
+  WHERE table_schema = CURRENT_SCHEMA()
+  ORDER BY table_name
+  LIMIT max_results
+) t
 $$;
 
 
