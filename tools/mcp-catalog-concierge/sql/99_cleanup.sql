@@ -15,27 +15,21 @@ SET project_schema = 'MCP_SNOWFLAKE_BRIDGE';
 SET warehouse_name = 'SFE_MCP_SNOWFLAKE_BRIDGE_WH';
 SET mcp_server_name = 'MCP_SNOWFLAKE_BRIDGE';
 
-DECLARE
-    stmt STRING;
-BEGIN
-    stmt := 'DROP MCP SERVER IF EXISTS ' || $demo_db || '.' || $project_schema || '.' || $mcp_server_name;
-    EXECUTE IMMEDIATE stmt;
+-- Prefer IDENTIFIER() over EXECUTE IMMEDIATE wherever possible (clearer + safer).
+DROP MCP SERVER IF EXISTS IDENTIFIER($demo_db || '.' || $project_schema || '.' || $mcp_server_name);
 
-    stmt := 'DROP FUNCTION IF EXISTS ' || $demo_db || '.' || $project_schema || '.LIST_SCHEMA_OBJECTS(NUMBER)';
-    EXECUTE IMMEDIATE stmt;
+USE DATABASE IDENTIFIER($demo_db);
+USE SCHEMA IDENTIFIER($demo_db || '.' || $project_schema);
 
-    stmt := 'DROP AGENT IF EXISTS ' || $demo_db || '.' || $project_schema || '.MCP_SQL_HELPER';
-    EXECUTE IMMEDIATE stmt;
+DROP FUNCTION IF EXISTS LIST_SCHEMA_OBJECTS(NUMBER);
+DROP AGENT IF EXISTS MCP_SQL_HELPER;
 
-    stmt := 'DROP SCHEMA IF EXISTS ' || $demo_db || '.' || $project_schema || ' CASCADE';
-    EXECUTE IMMEDIATE stmt;
+-- Drop the schema last so we can still reference in-schema objects above.
+DROP SCHEMA IF EXISTS IDENTIFIER($demo_db || '.' || $project_schema) CASCADE;
 
-    stmt := 'DROP WAREHOUSE IF EXISTS ' || $warehouse_name;
-    EXECUTE IMMEDIATE stmt;
+DROP WAREHOUSE IF EXISTS IDENTIFIER($warehouse_name);
 
-    stmt := 'DROP GIT REPOSITORY IF EXISTS ' || $demo_db || '.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO';
-    EXECUTE IMMEDIATE stmt;
-END;
+DROP GIT REPOSITORY IF EXISTS IDENTIFIER($demo_db || '.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO');
 
 -- NOTE: shared objects are intentionally left in place:
 -- - SNOWFLAKE_EXAMPLE database

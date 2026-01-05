@@ -81,9 +81,10 @@ tools/mcp-catalog-concierge/
 ├── python/                      # Local stdio-to-HTTP bridge for VS Code
 ├── sql/                         # All SQL scripts
 │   ├── 00_config.sql            # Naming + expiration
-│   ├── 01_setup.sql             # Schema, warehouse, helper function
-│   ├── 02_mcp_server.sql        # MCP server definition
-│   ├── 03_agent.sql             # Optional agent (not required)
+│   ├── 01_setup.sql             # Schema + warehouse
+│   ├── 02_helper_function.sql   # Helper function(s) for MCP tools
+│   ├── 03_mcp_server.sql        # MCP server definition
+│   ├── 04_agent.sql             # Optional agent (not required)
 │   └── 99_cleanup.sql           # Teardown script
 ├── diagrams/                    # Architecture diagrams
 └── docs/                        # User documentation

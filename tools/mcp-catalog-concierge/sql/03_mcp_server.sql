@@ -11,7 +11,8 @@
 
 USE ROLE ACCOUNTADMIN;
 
--- Assumes context + variables already set by sql/00_config.sql and sql/01_setup.sql.
+-- Assumes context + variables already set by sql/00_config.sql, sql/01_setup.sql,
+-- and sql/02_helper_function.sql.
 DECLARE
     spec STRING;
     stmt STRING;

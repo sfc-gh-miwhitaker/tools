@@ -49,7 +49,8 @@ ALTER GIT REPOSITORY SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO FETCH
 -- ============================================================================
 EXECUTE IMMEDIATE FROM '@SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO/branches/main/tools/mcp-catalog-concierge/sql/00_config.sql';
 EXECUTE IMMEDIATE FROM '@SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO/branches/main/tools/mcp-catalog-concierge/sql/01_setup.sql';
-EXECUTE IMMEDIATE FROM '@SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO/branches/main/tools/mcp-catalog-concierge/sql/02_mcp_server.sql';
+EXECUTE IMMEDIATE FROM '@SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO/branches/main/tools/mcp-catalog-concierge/sql/02_helper_function.sql';
+EXECUTE IMMEDIATE FROM '@SNOWFLAKE_EXAMPLE.TOOLS.SFE_MCP_SNOWFLAKE_BRIDGE_REPO/branches/main/tools/mcp-catalog-concierge/sql/03_mcp_server.sql';
 
 -- ============================================================================
 -- Final summary (single result set)

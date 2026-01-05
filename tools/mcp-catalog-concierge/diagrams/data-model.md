@@ -30,13 +30,13 @@ flowchart TB
 - MCP_SERVER_MCP_SNOWFLAKE_BRIDGE
   - Purpose: Defines MCP tools and exposes them via Snowflake API v2
   - Technology: Snowflake-managed MCP server
-  - Location: `tools/mcp-catalog-concierge/sql/02_mcp_server.sql`
-  - Deps: `sql/00_config.sql`, `sql/01_setup.sql`
+  - Location: `tools/mcp-catalog-concierge/sql/03_mcp_server.sql`
+  - Deps: `sql/00_config.sql`, `sql/01_setup.sql`, `sql/02_helper_function.sql`
 
 - FUNCTION_LIST_SCHEMA_OBJECTS
   - Purpose: Returns a JSON snapshot of tables/views in the current schema for routing
   - Technology: SQL UDF returning VARIANT
-  - Location: `tools/mcp-catalog-concierge/sql/01_setup.sql`
+  - Location: `tools/mcp-catalog-concierge/sql/02_helper_function.sql`
   - Deps: Warehouse access for execution
 
 - WAREHOUSE_SFE_MCP_SNOWFLAKE_BRIDGE_WH
@@ -48,7 +48,7 @@ flowchart TB
 - AGENT_MCP_SQL_HELPER_optional
   - Purpose: Optional helper agent for SQL drafting guidance (not wired into MCP server)
   - Technology: Cortex Agent
-  - Location: `tools/mcp-catalog-concierge/sql/03_agent.sql`
+  - Location: `tools/mcp-catalog-concierge/sql/04_agent.sql`
   - Deps: Cortex feature availability
 
 ## Change History
