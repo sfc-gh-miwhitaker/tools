@@ -2,9 +2,9 @@
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
 
-**Author:** SE Community  
-**Purpose:** Enhance Snowflake semantic views with AI-improved descriptions using Cortex  
-**Expires:** 2026-01-15 (30 days)  
+**Author:** SE Community
+**Purpose:** Enhance Snowflake semantic views with AI-improved descriptions using Cortex
+**Expires:** 2026-01-15 (30 days)
 **Status:** ✅ Active
 
 ---
@@ -130,7 +130,7 @@ ORDER STATUS CODES:
 
 PRIORITY LEVELS:
 - 1-URGENT: VIP customers, 24-hour SLA, VP approval if >$50K
-- 2-HIGH: Premium customers, 48-hour SLA  
+- 2-HIGH: Premium customers, 48-hour SLA
 - 3-MEDIUM: Standard customers, 5-day SLA
 
 BUSINESS RULES:
@@ -298,4 +298,3 @@ See `diagrams/` folder for detailed architecture diagrams:
 ---
 
 *SE Community • Tools Collection • Last Updated: 2025-12-15*
-

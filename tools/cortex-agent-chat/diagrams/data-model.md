@@ -1,8 +1,8 @@
 # Data Model - Cortex Agent Chat (React UI)
 
-Author: SE Community  
-Last Updated: 2025-12-15  
-Expires: 2026-01-14 (30 days from creation)  
+Author: SE Community
+Last Updated: 2025-12-15
+Expires: 2026-01-14 (30 days from creation)
 Status: Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -21,14 +21,14 @@ erDiagram
     USER ||--o{ PROGRAMMATIC_ACCESS_TOKEN : has
     USER ||--o{ ROLE : has
     ROLE ||--o{ SFE_REACT_DEMO_AGENT : can_use
-    
+
     SNOWFLAKE_EXAMPLE {
         string database_name PK "SNOWFLAKE_EXAMPLE"
         string owner "SYSADMIN"
         timestamp created_on
         string comment "Shared demo database"
     }
-    
+
     SFE_CORTEX_AGENT_CHAT {
         string schema_name PK "SFE_CORTEX_AGENT_CHAT"
         string database_name FK "SNOWFLAKE_EXAMPLE"
@@ -37,7 +37,7 @@ erDiagram
         date expires "2026-01-14"
         string comment "Tool schema"
     }
-    
+
     SFE_REACT_DEMO_AGENT {
         string agent_name PK "SFE_REACT_DEMO_AGENT"
         string schema_name FK "SFE_CORTEX_AGENT_CHAT"
@@ -49,7 +49,7 @@ erDiagram
         date expires "2026-01-14"
         string comment "Demo Cortex Agent"
     }
-    
+
     SFE_CORTEX_CHAT_POLICY {
         string policy_name PK "SFE_CORTEX_CHAT_POLICY"
         string allowed_ip_list "IP ranges"
@@ -58,7 +58,7 @@ erDiagram
         date expires "2026-01-14"
         string comment "Network policy for PAT"
     }
-    
+
     USER {
         string user_name PK
         string email
@@ -66,7 +66,7 @@ erDiagram
         string network_policy FK "SFE_CORTEX_CHAT_POLICY"
         timestamp created_on
     }
-    
+
     PROGRAMMATIC_ACCESS_TOKEN {
         string token_name PK
         string user_name FK
@@ -75,7 +75,7 @@ erDiagram
         timestamp created_on
         timestamp expires_at "Max 90 days"
     }
-    
+
     ROLE {
         string role_name PK
         string comment
@@ -215,17 +215,17 @@ REACT_APP_SNOWFLAKE_PAT=...
 
 ```sql
 -- Agent usage grant
-GRANT USAGE ON CORTEX AGENT 
-  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT 
+GRANT USAGE ON CORTEX AGENT
+  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_REACT_DEMO_AGENT
 TO ROLE SYSADMIN;
 
 -- Schema usage grant (implicit for owner)
-GRANT USAGE ON SCHEMA 
-  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT 
+GRANT USAGE ON SCHEMA
+  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT
 TO ROLE SYSADMIN;
 
 -- Database usage grant (implicit for owner)
-GRANT USAGE ON DATABASE SNOWFLAKE_EXAMPLE 
+GRANT USAGE ON DATABASE SNOWFLAKE_EXAMPLE
 TO ROLE SYSADMIN;
 ```
 
@@ -309,4 +309,3 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 ---
 
 *SE Community • Cortex Agent Chat Tool • Created: 2025-12-15 • Expires: 2026-01-14*
-

@@ -6,9 +6,9 @@ const MessageList = ({ messages, isLoading }) => {
   return (
     <div className="message-list">
       {messages.map(message => (
-        <Message 
-          key={message.id} 
-          message={message} 
+        <Message
+          key={message.id}
+          message={message}
         />
       ))}
       {isLoading && (

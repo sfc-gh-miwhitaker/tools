@@ -1,0 +1,53 @@
+# Pre-commit security configuration
+# Author: SE Community
+# Purpose: Prevent credential leaks and common repository hygiene issues.
+#
+# Install:
+#   pre-commit install
+#
+# Run:
+#   pre-commit run --all-files
+
+repos:
+  # Detect potential secrets (supports baselining for known false positives)
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: (^|/)package-lock\.json$
+
+  # Additional secret detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  # Standard hygiene hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  # Local (repo-specific) safety checks
+  - repo: local
+    hooks:
+      - id: block-cursor-files
+        name: Block .cursor/ files from being committed
+        entry: bash
+        args:
+          - -c
+          - |
+              if git diff --cached --name-only | grep -qE "(^|/)\\.cursor/"; then
+                echo "ERROR: .cursor/ files must not be committed"
+                exit 1
+              fi
+        language: system
+        pass_filenames: false

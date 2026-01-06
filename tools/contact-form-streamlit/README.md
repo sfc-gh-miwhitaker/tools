@@ -103,4 +103,3 @@ See `diagrams/` for:
 ---
 
 *SE Community • Contact Form Tool • Created: 2025-12-10*
-

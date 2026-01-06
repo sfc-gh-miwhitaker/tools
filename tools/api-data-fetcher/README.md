@@ -85,7 +85,7 @@ This is a free, public fake REST API for testing and prototyping. No authenticat
 After calling the procedure:
 
 ```sql
-SELECT user_id, name, email, company_name 
+SELECT user_id, name, email, company_name
 FROM SNOWFLAKE_EXAMPLE.SFE_API_FETCHER.SFE_USERS
 LIMIT 3;
 ```
@@ -157,4 +157,3 @@ See `diagrams/` for:
 ---
 
 *SE Community • API Data Fetcher Tool • Created: 2025-12-10*
-

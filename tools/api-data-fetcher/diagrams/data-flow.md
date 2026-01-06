@@ -1,7 +1,7 @@
 # Data Flow - API Data Fetcher
 
-Author: SE Community  
-Last Updated: 2025-12-10  
+Author: SE Community
+Last Updated: 2025-12-10
 Expires: 2026-01-09
 
 ## Overview
@@ -15,22 +15,22 @@ graph LR
     subgraph "External"
         API[JSONPlaceholder API<br/>jsonplaceholder.typicode.com]
     end
-    
+
     subgraph "Snowflake"
         subgraph "Security Layer"
             EAI[External Access Integration]
             NR[Network Rule<br/>EGRESS: :443]
         end
-        
+
         subgraph "Compute"
             Proc[SFE_FETCH_USERS<br/>Python Procedure]
         end
-        
+
         subgraph "Storage"
             Table[(SFE_USERS)]
         end
     end
-    
+
     Proc -->|1. Request via| EAI
     EAI -->|2. Governed by| NR
     NR -->|3. HTTPS GET| API
@@ -71,4 +71,3 @@ API JSON                    →  Snowflake Table
   }
 }
 ```
-

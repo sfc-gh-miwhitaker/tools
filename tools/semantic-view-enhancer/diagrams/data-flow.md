@@ -1,7 +1,7 @@
 # Data Flow - Better Descriptions
 
-**Author:** SE Community  
-**Last Updated:** 2025-11-21  
+**Author:** SE Community
+**Last Updated:** 2025-11-21
 **Status:** Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -19,28 +19,28 @@ graph TB
     subgraph "Source Layer"
         SV[Existing Semantic Views<br/>User's Database]
     end
-    
+
     subgraph "Extraction Layer - SNOWFLAKE_EXAMPLE.SEMANTIC_ENHANCEMENTS"
         Proc[SFE_ENHANCE_SEMANTIC_VIEW<br/>Stored Procedure]
         GetDDL[GET_DDL Function]
         Describe[DESCRIBE SEMANTIC VIEW]
     end
-    
+
     subgraph "Processing Layer"
         Parse[Parse DDL<br/>Extract Structure]
         Context[Business Context Prompt<br/>User-Provided]
     end
-    
+
     subgraph "AI Enhancement Layer - Snowflake Cortex"
         Cortex[Cortex AI_COMPLETE<br/>llama3.3-70b Model]
         Enhance[Generate Enhanced<br/>Descriptions]
     end
-    
+
     subgraph "Output Layer"
         NewDDL[Modified DDL<br/>Enhanced Comments]
         EnhancedView[Enhanced Semantic View<br/>SOURCE_NAME_ENHANCED]
     end
-    
+
     SV -->|"1. CALL Procedure"| Proc
     Proc -->|"2. Extract Metadata"| GetDDL
     Proc -->|"3. List Dimensions/Facts"| Describe
@@ -51,7 +51,7 @@ graph TB
     Cortex -->|AI-Generated Description| Enhance
     Enhance -->|"5. Update Comments"| NewDDL
     NewDDL -->|"6. CREATE SEMANTIC VIEW"| EnhancedView
-    
+
     style SV fill:#e1f5ff
     style Proc fill:#fff4e1
     style Cortex fill:#f0e1ff
@@ -201,6 +201,5 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 
 ---
 
-**Last Review:** 2025-11-14  
+**Last Review:** 2025-11-14
 **Next Review Due:** 2026-02-14 (90 days)
-

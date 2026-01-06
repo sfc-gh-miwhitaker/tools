@@ -34,4 +34,3 @@ SELECT
     CURRENT_TIMESTAMP() AS completed_at,
     'API Data Fetcher' AS tool,
     'Schema SFE_API_FETCHER and integration removed' AS message;
-

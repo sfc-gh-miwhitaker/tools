@@ -72,7 +72,7 @@ USE SCHEMA SFE_CORTEX_CALC;
 CREATE OR REPLACE VIEW V_CORTEX_ANALYST_DETAIL
     COMMENT = 'TOOL: Cortex Analyst per-request usage | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     'Cortex Analyst' AS service_type,
     DATE_TRUNC('day', start_time) AS usage_date,
     username,
@@ -85,7 +85,7 @@ WHERE start_time >= DATEADD('day', -90, CURRENT_TIMESTAMP());
 CREATE OR REPLACE VIEW V_CORTEX_SEARCH_DETAIL
     COMMENT = 'TOOL: Cortex Search daily usage | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     'Cortex Search' AS service_type,
     usage_date,
     service_name,
@@ -98,7 +98,7 @@ WHERE usage_date >= DATEADD('day', -90, CURRENT_TIMESTAMP());
 CREATE OR REPLACE VIEW V_CORTEX_FUNCTIONS_DETAIL
     COMMENT = 'TOOL: Cortex LLM functions hourly usage | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     'Cortex Functions' AS service_type,
     DATE_TRUNC('day', start_time) AS usage_date,
     function_name,
@@ -112,7 +112,7 @@ WHERE start_time >= DATEADD('day', -90, CURRENT_TIMESTAMP());
 CREATE OR REPLACE VIEW V_DOCUMENT_AI_DETAIL
     COMMENT = 'TOOL: Document AI processing usage | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     'Document AI' AS service_type,
     DATE_TRUNC('day', start_time) AS usage_date,
     credits_used,
@@ -125,7 +125,7 @@ WHERE start_time >= DATEADD('day', -90, CURRENT_TIMESTAMP());
 CREATE OR REPLACE VIEW V_CORTEX_FUNCTION_SUMMARY
     COMMENT = 'TOOL: LLM function/model cost analysis | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     function_name,
     model_name,
     COUNT(*) AS call_count,
@@ -154,7 +154,7 @@ WITH all_services AS (
     SELECT usage_date, service_type, 0 AS users, SUM(page_count) AS operations, SUM(credits_used) AS credits
     FROM V_DOCUMENT_AI_DETAIL GROUP BY usage_date, service_type
 )
-SELECT 
+SELECT
     usage_date,
     service_type,
     SUM(users) AS daily_unique_users,
@@ -169,7 +169,7 @@ ORDER BY usage_date DESC, total_credits DESC;
 CREATE OR REPLACE VIEW V_CORTEX_COST_EXPORT
     COMMENT = 'TOOL: Export-ready format for cost calculator | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     usage_date AS date,
     service_type,
     daily_unique_users,
@@ -184,7 +184,7 @@ ORDER BY date DESC;
 CREATE OR REPLACE VIEW V_METERING_AI_SERVICES
     COMMENT = 'TOOL: High-level AI services metering | Expires: 2026-01-09'
 AS
-SELECT 
+SELECT
     usage_date,
     SUM(credits_used) AS total_credits,
     SUM(credits_used_compute) AS compute_credits,
@@ -264,7 +264,7 @@ dependencies:
   - numpy
 '''
     session.file.put_stream(BytesIO(env_yml.encode('utf-8')), '@SFE_STREAMLIT_STAGE/environment.yml', auto_compress=False, overwrite=True)
-    
+
     # Upload app.py
     code = '''
 import streamlit as st
@@ -287,7 +287,7 @@ with st.sidebar:
     st.header("Settings")
     credit_cost = st.number_input("$/credit", 1.0, 10.0, 3.0, 0.5)
     lookback = st.slider("Days of history", 7, 90, 30)
-    
+
     if st.button("Refresh Data"):
         st.cache_data.clear()
 
@@ -319,23 +319,23 @@ tab1, tab2, tab3 = st.tabs(["📈 Historical Analysis", "🤖 Model Costs", "�
 
 with tab1:
     st.header("Historical Usage")
-    
+
     total_credits = df["TOTAL_CREDITS"].sum()
     total_cost = total_credits * credit_cost
     avg_daily = df.groupby("DATE")["TOTAL_CREDITS"].sum().mean()
-    
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Credits", f"{total_credits:,.0f}")
     c2.metric("Total Cost", f"${total_cost:,.2f}")
     c3.metric("Avg Daily Credits", f"{avg_daily:,.1f}")
     c4.metric("Services Active", df["SERVICE_TYPE"].nunique())
-    
+
     st.divider()
-    
+
     # Service breakdown
     service_agg = df.groupby("SERVICE_TYPE").agg({"TOTAL_CREDITS": "sum"}).reset_index()
     service_agg["COST_USD"] = service_agg["TOTAL_CREDITS"] * credit_cost
-    
+
     c1, c2 = st.columns([2, 1])
     with c1:
         fig = px.line(df.groupby(["DATE", "SERVICE_TYPE"])["TOTAL_CREDITS"].sum().reset_index(),
@@ -344,24 +344,24 @@ with tab1:
     with c2:
         fig = px.pie(service_agg, values="TOTAL_CREDITS", names="SERVICE_TYPE", title="Credit Distribution")
         st.plotly_chart(fig, use_container_width=True)
-    
+
     st.dataframe(service_agg.style.format({"TOTAL_CREDITS": "{:,.0f}", "COST_USD": "${:,.2f}"}), use_container_width=True)
 
 with tab2:
     st.header("LLM Model Costs")
-    
+
     if func_df.empty:
         st.info("No LLM function usage found yet.")
     else:
         func_df.columns = func_df.columns.str.upper()
         func_df["COST_USD"] = func_df["TOTAL_CREDITS"] * credit_cost
-        
+
         c1, c2 = st.columns(4)[:2]
         c1.metric("Models Used", func_df["MODEL_NAME"].nunique())
         c2.metric("Total LLM Calls", f"{func_df['CALL_COUNT'].sum():,.0f}")
-        
+
         st.divider()
-        
+
         # Model comparison
         model_agg = func_df.groupby("MODEL_NAME").agg({
             "CALL_COUNT": "sum", "TOTAL_CREDITS": "sum", "TOTAL_TOKENS": "sum"
@@ -370,11 +370,11 @@ with tab2:
         model_agg["$/M TOKENS"] = model_agg.apply(
             lambda r: (r["TOTAL_CREDITS"] / r["TOTAL_TOKENS"] * 1e6 * credit_cost) if r["TOTAL_TOKENS"] > 0 else 0, axis=1
         )
-        
+
         fig = px.bar(model_agg.sort_values("TOTAL_CREDITS", ascending=False).head(10),
                      x="MODEL_NAME", y="TOTAL_CREDITS", title="Top Models by Credit Usage")
         st.plotly_chart(fig, use_container_width=True)
-        
+
         st.dataframe(model_agg.sort_values("TOTAL_CREDITS", ascending=False).style.format({
             "CALL_COUNT": "{:,.0f}", "TOTAL_CREDITS": "{:.4f}", "COST_USD": "${:,.2f}",
             "TOTAL_TOKENS": "{:,.0f}", "$/M TOKENS": "${:,.2f}"
@@ -382,39 +382,39 @@ with tab2:
 
 with tab3:
     st.header("Cost Projections")
-    
+
     c1, c2 = st.columns(2)
     months = c1.slider("Projection months", 3, 24, 12)
     growth = c2.slider("Monthly growth %", 0, 100, 25) / 100
-    
+
     baseline = df.groupby("DATE")["TOTAL_CREDITS"].sum().mean()
-    
+
     projections = []
     for m in range(1, months + 1):
         monthly = baseline * 30 * ((1 + growth) ** m)
         projections.append({"Month": m, "Credits": monthly, "Cost": monthly * credit_cost})
-    
+
     proj_df = pd.DataFrame(projections)
     total_year = proj_df[proj_df["Month"] <= 12]["Cost"].sum()
-    
+
     c1, c2, c3 = st.columns(3)
     c1.metric("Month 1 Cost", f"${proj_df.iloc[0]['Cost']:,.0f}")
     c2.metric("Month 12 Cost", f"${proj_df[proj_df['Month']==12]['Cost'].iloc[0]:,.0f}" if len(proj_df) >= 12 else "N/A")
     c3.metric("Year 1 Total", f"${total_year:,.0f}")
-    
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=proj_df["Month"], y=proj_df["Cost"], mode="lines+markers", name="Projected"))
     fig.add_trace(go.Scatter(x=proj_df["Month"], y=proj_df["Cost"] * 0.9, mode="lines", name="Low (-10%)", line=dict(dash="dot")))
     fig.add_trace(go.Scatter(x=proj_df["Month"], y=proj_df["Cost"] * 1.1, mode="lines", name="High (+10%)", line=dict(dash="dot")))
     fig.update_layout(title="Cost Projection", xaxis_title="Month", yaxis_title="Cost (USD)")
     st.plotly_chart(fig, use_container_width=True)
-    
+
     st.dataframe(proj_df.style.format({"Credits": "{:,.0f}", "Cost": "${:,.2f}"}), use_container_width=True)
 
 st.divider()
 st.caption("Cortex Cost Calculator | SE Community | Data from ACCOUNT_USAGE (45min-3hr latency)")
 '''
-    
+
     session.file.put_stream(BytesIO(code.encode('utf-8')), '@SFE_STREAMLIT_STAGE/app.py', auto_compress=False, overwrite=True)
     return "Calculator app and dependencies uploaded (environment.yml + app.py)"
 $$;
@@ -431,4 +431,3 @@ SELECT
     'Cortex Cost Calculator' AS tool,
     '2026-01-09' AS expires,
     'Navigate to Projects -> Streamlit -> SFE_CORTEX_CALCULATOR' AS next_step;
-

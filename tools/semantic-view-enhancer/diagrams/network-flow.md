@@ -1,7 +1,7 @@
 # Network Flow - Better Descriptions
 
-**Author:** SE Community  
-**Last Updated:** 2025-11-21  
+**Author:** SE Community
+**Last Updated:** 2025-11-21
 **Status:** Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -19,33 +19,33 @@ graph TB
     subgraph "Client Layer"
         User[User/Application<br/>Snowsight or SQL Client]
     end
-    
+
     subgraph "Snowflake Account Boundary"
         subgraph "Virtual Warehouse Layer"
             WH[COMPUTE_WH<br/>Virtual Warehouse<br/>Port: Internal]
         end
-        
+
         subgraph "Metadata Services"
             GetDDL[GET_DDL Function<br/>Metadata API]
             Describe[DESCRIBE Command<br/>Metadata API]
         end
-        
+
         subgraph "Compute Services"
             ProcExec[Stored Procedure Executor<br/>Python Runtime 3.10]
             Snowpark[Snowpark Session<br/>SQL Execution Engine]
         end
-        
+
         subgraph "AI Services - Snowflake Cortex"
             Cortex[Cortex COMPLETE API<br/>Internal HTTPS]
             LLM[llama3.1-70b Model<br/>Managed Service]
         end
-        
+
         subgraph "Storage Layer"
             Schema[SNOWFLAKE_EXAMPLE<br/>Database]
             SemViews[Semantic Views<br/>Metadata Objects]
         end
     end
-    
+
     User -->|HTTPS:443<br/>SQL Commands| WH
     WH -->|Execute CALL| ProcExec
     ProcExec -->|Snowpark SQL| Snowpark
@@ -57,7 +57,7 @@ graph TB
     Cortex -->|Enhanced Text| Snowpark
     Snowpark -->|CREATE VIEW| SemViews
     SemViews -->|Metadata| Schema
-    
+
     style User fill:#e1f5ff
     style WH fill:#fff4e1
     style Cortex fill:#f0e1ff
@@ -327,6 +327,5 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 
 ---
 
-**Last Review:** 2025-11-14  
+**Last Review:** 2025-11-14
 **Next Review Due:** 2026-02-14 (90 days)
-

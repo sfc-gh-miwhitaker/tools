@@ -18,7 +18,7 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -30,34 +30,34 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.account.trim()) {
       newErrors.account = 'Snowflake account is required';
     }
-    
+
     if (!formData.user.trim()) {
       newErrors.user = 'Snowflake user is required';
     }
-    
+
     if (!formData.database.trim()) {
       newErrors.database = 'Database name is required';
     }
-    
+
     if (!formData.schema.trim()) {
       newErrors.schema = 'Schema name is required';
     }
-    
+
     if (!formData.agentName.trim()) {
       newErrors.agentName = 'Agent name is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSave(formData);
     }
@@ -73,7 +73,7 @@ const ConfigPanel = ({ config, onSave, onCancel }) => {
         <div className="pat-info">
           <strong>🔐 Key-Pair Authentication:</strong> Managed server-side by the local backend proxy. Keep the private key in <code>.env.server.local</code>, not in the browser.
         </div>
-        
+
         <form onSubmit={handleSubmit} className="config-form">
           <div className="form-group">
             <label htmlFor="account">Snowflake Account *</label>

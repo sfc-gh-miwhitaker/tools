@@ -20,4 +20,3 @@ const ThinkingIndicator = () => {
 };
 
 export default ThinkingIndicator;
-

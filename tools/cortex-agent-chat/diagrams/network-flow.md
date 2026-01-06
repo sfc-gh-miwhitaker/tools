@@ -1,8 +1,8 @@
 # Network Flow - Cortex Agent Chat (React UI)
 
-Author: SE Community  
-Last Updated: 2025-12-15  
-Expires: 2026-01-14 (30 days from creation)  
+Author: SE Community
+Last Updated: 2025-12-15
+Expires: 2026-01-14 (30 days from creation)
 Status: Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -22,31 +22,31 @@ graph TB
         Backend[Express Proxy<br/>:4000 HTTP]
         Files[Local Filesystem<br/>.env.local (frontend)<br/>.env.server.local (backend)]
     end
-    
+
     subgraph network [Network Layer]
         FW[Corporate Firewall<br/>Outbound HTTPS]
         DNS[DNS Resolution<br/>*.snowflakecomputing.com]
     end
-    
+
     subgraph snowflake [Snowflake Cloud - account.snowflakecomputing.com]
         LB[Load Balancer<br/>:443 HTTPS]
         API[REST API Gateway<br/>TLS 1.2+]
-        
+
         subgraph security [Security Layer]
             RBAC[Role-Based Access<br/>SYSADMIN grants]
         end
-        
+
         subgraph compute [Compute Layer]
             WH[Warehouse<br/>SFE_TOOLS_WH<br/>X-SMALL]
         end
-        
+
         subgraph services [Service Layer]
             Schema[Schema<br/>SFE_CORTEX_AGENT_CHAT]
             Agent[Cortex Agent<br/>SFE_REACT_DEMO_AGENT]
             Cortex[Cortex AI Service<br/>Managed LLM]
         end
     end
-    
+
     Dev -->|HTTP| React
     React -->|HTTP /api/...| Backend
     Backend -->|HTTPS :443<br/>KEYPAIR_JWT| FW
@@ -64,7 +64,7 @@ graph TB
     React --> Browser
     Files -.->|Load config| React
     Files -.->|Load secrets| Backend
-    
+
     style Dev fill:#e1f5ff
     style Browser fill:#fff4e1
     style React fill:#e8f5e9
@@ -262,7 +262,7 @@ Snowflake REST API includes built-in rate limiting:
 
 ### Cannot Reach Snowflake
 
-**Symptoms:** Network timeouts, DNS errors  
+**Symptoms:** Network timeouts, DNS errors
 **Check:**
 1. Firewall allows outbound HTTPS (:443)
 2. DNS resolution works: `nslookup {account}.snowflakecomputing.com`
@@ -270,7 +270,7 @@ Snowflake REST API includes built-in rate limiting:
 
 ### 401 Unauthorized
 
-**Symptoms:** Authentication failure  
+**Symptoms:** Authentication failure
 **Check:**
 1. PAT is valid and not expired
 2. PAT user has network policy assigned
@@ -278,7 +278,7 @@ Snowflake REST API includes built-in rate limiting:
 
 ### 403 Forbidden
 
-**Symptoms:** Permission denied  
+**Symptoms:** Permission denied
 **Check:**
 1. User has USAGE grant on agent
 2. Role associated with PAT has appropriate permissions
@@ -291,4 +291,3 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 ---
 
 *SE Community • Cortex Agent Chat Tool • Created: 2025-12-15 • Expires: 2026-01-14*
-

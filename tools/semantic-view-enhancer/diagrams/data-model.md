@@ -1,7 +1,7 @@
 # Data Model - Better Descriptions
 
-**Author:** SE Community  
-**Last Updated:** 2025-11-21  
+**Author:** SE Community
+**Last Updated:** 2025-11-21
 **Status:** Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -22,7 +22,7 @@ erDiagram
         string schema_name "Source schema"
         string comment "View-level description"
     }
-    
+
     DIMENSION {
         string dimension_name PK "Dimension identifier"
         string view_name FK "Parent semantic view"
@@ -32,7 +32,7 @@ erDiagram
         string enhanced_comment "AFTER: AI-generated business description"
         string synonyms "Alternative names for AI understanding"
     }
-    
+
     FACT {
         string fact_name PK "Fact identifier"
         string view_name FK "Parent semantic view"
@@ -41,7 +41,7 @@ erDiagram
         string comment "BEFORE: Generic description"
         string enhanced_comment "AFTER: AI-generated business description"
     }
-    
+
     METRIC {
         string metric_name PK "Metric identifier"
         string view_name FK "Parent semantic view"
@@ -50,7 +50,7 @@ erDiagram
         string comment "BEFORE: Generic description"
         string enhanced_comment "AFTER: AI-generated business description"
     }
-    
+
     RELATIONSHIP {
         string relationship_name PK "Relationship identifier"
         string view_name FK "Parent semantic view"
@@ -58,14 +58,14 @@ erDiagram
         string target_table "To table"
         string join_columns "Foreign key columns"
     }
-    
+
     BUSINESS_CONTEXT {
         string prompt_text "User-provided business context"
         string domain_info "Industry-specific terminology"
         string code_definitions "Abbreviation explanations"
         string business_rules "Constraints and logic"
     }
-    
+
     SEMANTIC_VIEW ||--o{ DIMENSION : contains
     SEMANTIC_VIEW ||--o{ FACT : contains
     SEMANTIC_VIEW ||--o{ METRIC : contains
@@ -242,4 +242,3 @@ Manual metadata creation is time-consuming:
 ## Change History
 
 See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
-

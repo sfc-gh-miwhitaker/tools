@@ -58,11 +58,10 @@ SELECT
 /*
  * -- Verify database exists
  * SHOW DATABASES LIKE 'SNOWFLAKE_EXAMPLE';
- * 
+ *
  * -- Verify warehouse exists
  * SHOW WAREHOUSES LIKE 'SFE_TOOLS_WH';
- * 
+ *
  * -- List all tool schemas
  * SHOW SCHEMAS IN DATABASE SNOWFLAKE_EXAMPLE;
  */
-

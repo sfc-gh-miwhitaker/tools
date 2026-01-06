@@ -1,7 +1,7 @@
 # Data Flow - Contact Form (Streamlit)
 
-Author: SE Community  
-Last Updated: 2025-12-10  
+Author: SE Community
+Last Updated: 2025-12-10
 Expires: 2026-01-09
 
 ## Overview
@@ -15,21 +15,21 @@ graph LR
     subgraph "User"
         Browser[Web Browser]
     end
-    
+
     subgraph "Streamlit in Snowflake"
         App[SFE_CONTACT_FORM]
         Form[Form Component]
         Display[Data Display]
     end
-    
+
     subgraph "Storage"
         Table[(SFE_SUBMISSIONS)]
     end
-    
+
     Browser -->|1. Open app| App
     App --> Form
     App --> Display
-    
+
     Form -->|2. Submit| App
     App -->|3. INSERT| Table
     Table -->|4. SELECT| Display
@@ -45,4 +45,3 @@ graph LR
 | 3 | Insert submission | Handler → Table | `INSERT INTO SFE_SUBMISSIONS` |
 | 4 | Fetch recent | Display ← Table | `SELECT ... ORDER BY submitted_at DESC` |
 | 5 | Render results | Browser ← Display | - |
-

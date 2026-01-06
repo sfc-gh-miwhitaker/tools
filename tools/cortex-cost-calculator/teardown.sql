@@ -23,4 +23,3 @@ SELECT
     '✅ TEARDOWN COMPLETE' AS status,
     CURRENT_TIMESTAMP() AS completed_at,
     'Cortex Cost Calculator removed' AS message;
-

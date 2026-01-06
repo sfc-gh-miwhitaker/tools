@@ -14,10 +14,10 @@ function App() {
   });
 
   // Check if all required environment variables are present
-  const hasEnvConfig = process.env.REACT_APP_SNOWFLAKE_ACCOUNT && 
+  const hasEnvConfig = process.env.REACT_APP_SNOWFLAKE_ACCOUNT &&
                        process.env.REACT_APP_SNOWFLAKE_USER &&
-                       process.env.REACT_APP_SNOWFLAKE_DATABASE && 
-                       process.env.REACT_APP_SNOWFLAKE_SCHEMA && 
+                       process.env.REACT_APP_SNOWFLAKE_DATABASE &&
+                       process.env.REACT_APP_SNOWFLAKE_SCHEMA &&
                        process.env.REACT_APP_CORTEX_AGENT_NAME;
 
   // Debug environment variables (remove in production)
@@ -59,11 +59,11 @@ function App() {
           </button>
         )}
       </header>
-      
+
       <main className="app-main">
         {showConfig || !config.isConfigured ? (
-          <ConfigPanel 
-            config={config} 
+          <ConfigPanel
+            config={config}
             onSave={handleConfigSave}
             onCancel={config.isConfigured ? () => setShowConfig(false) : null}
           />

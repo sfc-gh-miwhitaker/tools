@@ -4,9 +4,9 @@ This document outlines potential improvements to extend Wallmonitor's capabiliti
 
 ## Current Implementation
 
-**Architecture:** Standard views calling table function on-demand  
-**Data Window:** Last 24 hours (configurable)  
-**Latency:** Seconds (real-time)  
+**Architecture:** Standard views calling table function on-demand
+**Data Window:** Last 24 hours (configurable)
+**Latency:** Seconds (real-time)
 **Storage:** None (computed on query)
 
 ---
@@ -67,7 +67,7 @@ TARGET_LAG = '5 minute'
 WAREHOUSE = compute_wh
 COMMENT = 'Historical thread aggregations (last 30 days)'
 AS
-SELECT 
+SELECT
     agent_full_name,
     thread_id,
     user_id,
@@ -104,7 +104,7 @@ CREATE TABLE DAILY_AGENT_METRICS (
     agent_database STRING,
     agent_schema STRING,
     agent_name STRING,
-    
+
     -- Volume metrics
     unique_threads NUMBER,
     unique_users NUMBER,
@@ -112,27 +112,27 @@ CREATE TABLE DAILY_AGENT_METRICS (
     llm_calls NUMBER,
     tool_calls NUMBER,
     retrieval_calls NUMBER,
-    
+
     -- Token metrics
     total_tokens NUMBER,
     total_prompt_tokens NUMBER,
     total_completion_tokens NUMBER,
     avg_tokens_per_thread FLOAT,
-    
+
     -- Performance metrics
     avg_span_duration_ms FLOAT,
     p50_span_duration_ms FLOAT,
     p95_span_duration_ms FLOAT,
     p99_span_duration_ms FLOAT,
-    
+
     -- Quality metrics
     error_count NUMBER,
     success_count NUMBER,
     error_rate_pct FLOAT,
-    
+
     -- Metadata
     created_at TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP(),
-    
+
     PRIMARY KEY (event_date, agent_full_name)
 );
 
@@ -144,7 +144,7 @@ COMMENT = 'Refresh daily agent metrics from historical events'
 AS
 MERGE INTO DAILY_AGENT_METRICS AS target
 USING (
-    SELECT 
+    SELECT
         DATE_TRUNC('day', event_timestamp) AS event_date,
         agent_full_name,
         agent_database,
@@ -167,20 +167,20 @@ USING (
         COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) AS error_count,
         COUNT(CASE WHEN status = 'success' THEN 1 END) AS success_count,
         ROUND(
-            COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) * 100.0 
-            / NULLIF(COUNT(*), 0), 
+            COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) * 100.0
+            / NULLIF(COUNT(*), 0),
             2
         ) AS error_rate_pct
     FROM AGENT_EVENTS_HISTORY
     WHERE DATE_TRUNC('day', event_timestamp) = CURRENT_DATE() - 1  -- Yesterday
-    GROUP BY 
+    GROUP BY
         DATE_TRUNC('day', event_timestamp),
         agent_full_name,
         agent_database,
         agent_schema,
         agent_name
 ) AS source
-ON target.event_date = source.event_date 
+ON target.event_date = source.event_date
    AND target.agent_full_name = source.agent_full_name
 WHEN MATCHED THEN
     UPDATE SET
@@ -282,7 +282,7 @@ CREATE HYBRID TABLE REALTIME_THREAD_EVENTS (
     tool_name STRING,
     status STRING,
     error_message STRING,
-    
+
     PRIMARY KEY (thread_id, event_timestamp, event_sequence),
     INDEX idx_timestamp (event_timestamp),
     INDEX idx_agent (agent_full_name),
@@ -321,7 +321,7 @@ import snowflake.connector
 def log_agent_event(thread_id, span_data):
     conn = snowflake.connector.connect(...)
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         INSERT INTO WALLMONITOR.REALTIME_THREAD_EVENTS (
             thread_id, event_timestamp, event_sequence, agent_full_name,
@@ -373,7 +373,7 @@ Current implementation shows tokens but not credits/costs. For chargeback and bu
 -- Create view joining events with cost data
 CREATE OR REPLACE VIEW THREAD_ACTIVITY_WITH_COST AS
 WITH event_costs AS (
-    SELECT 
+    SELECT
         e.thread_id,
         e.agent_full_name,
         e.event_timestamp,
@@ -385,7 +385,7 @@ WITH event_costs AS (
     LEFT JOIN SNOWFLAKE.ACCOUNT_USAGE.CORTEX_AISQL_USAGE_HISTORY c
         ON e.query_id = c.query_id  -- If we tracked query_id
 )
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     SUM(total_tokens) AS total_tokens,
@@ -434,7 +434,7 @@ SCHEDULE = '5 minute'
 AS
 INSERT INTO ANOMALY_LOG (anomaly_type, severity, agent_full_name, thread_id, metric_name, metric_value, baseline_value, deviation_pct)
 -- Slow thread detection (>2x p95)
-SELECT 
+SELECT
     'SLOW_THREAD' AS anomaly_type,
     'WARNING' AS severity,
     t.agent_full_name,
@@ -451,7 +451,7 @@ WHERE t.thread_last_activity >= DATEADD('minute', -5, CURRENT_TIMESTAMP())
 UNION ALL
 
 -- High error rate detection (>10% in last 5 min)
-SELECT 
+SELECT
     'HIGH_ERROR_RATE' AS anomaly_type,
     'CRITICAL' AS severity,
     agent_full_name,
@@ -461,7 +461,7 @@ SELECT
     5.0 AS baseline_value,
     (error_rate_pct - 5.0) AS deviation_pct
 FROM (
-    SELECT 
+    SELECT
         agent_full_name,
         COUNT(CASE WHEN error_count > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) AS error_rate_pct
     FROM THREAD_ACTIVITY
@@ -499,9 +499,9 @@ CALL SYSTEM$SEND_EMAIL(
     'anomaly_alerts',
     'ops-team@example.com',
     'Wallmonitor Alert: Agent Anomalies Detected',
-    (SELECT LISTAGG(anomaly_type || ' - ' || agent_full_name, '\n') 
-     FROM ANOMALY_LOG 
-     WHERE severity = 'CRITICAL' 
+    (SELECT LISTAGG(anomaly_type || ' - ' || agent_full_name, '\n')
+     FROM ANOMALY_LOG
+     WHERE severity = 'CRITICAL'
        AND detected_at >= DATEADD('minute', -5, CURRENT_TIMESTAMP()))
 );
 ```
@@ -576,7 +576,7 @@ col1, col2, col3, col4 = st.columns(4)
 kpi_df = session.sql("SELECT * FROM WALLMONITOR.REALTIME_KPI").to_pandas()
 
 with col1:
-    st.metric("Active Threads", kpi_df['active_threads'][0], 
+    st.metric("Active Threads", kpi_df['active_threads'][0],
               delta=f"{kpi_df['threads_change_pct'][0]}%")
 with col2:
     st.metric("LLM Calls", kpi_df['llm_calls'][0],

@@ -14,7 +14,7 @@ const ChatInterface = ({ config }) => {
       timestamp: new Date()
     }
   ]);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState(null);
@@ -186,10 +186,10 @@ const ChatInterface = ({ config }) => {
       streamAbortRef.current.abort();
       streamAbortRef.current = null;
     }
-    
+
     setError(null);
     setThreadReady(false);
-    
+
     try {
       const id = await createThread();
       setThreadId(id);
@@ -239,8 +239,8 @@ const ChatInterface = ({ config }) => {
       </div>
 
       <div className="chat-container">
-        <MessageList 
-          messages={messages} 
+        <MessageList
+          messages={messages}
           isLoading={isLoading}
         />
         {isThinking && <ThinkingIndicator />}
@@ -261,7 +261,7 @@ const ChatInterface = ({ config }) => {
         </div>
       )}
 
-      <MessageInput 
+      <MessageInput
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
         isDisabled={!threadReady}

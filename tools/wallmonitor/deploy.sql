@@ -80,13 +80,13 @@ AS
 $$
     // Query to find all agents in the account
     var discover_sql = `
-        SELECT 
+        SELECT
             "database_name" AS agent_database,
-            "schema_name" AS agent_schema, 
+            "schema_name" AS agent_schema,
             "name" AS agent_name
         FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
     `;
-    
+
     // Execute SHOW to get all agents (correct command for Cortex Agents)
     try {
         snowflake.execute({sqlText: "SHOW AGENTS IN ACCOUNT"});
@@ -98,13 +98,13 @@ $$
             return "ERROR: Unable to enumerate agents. Ensure you have proper privileges.";
         }
     }
-    
+
     // Get results
     var agents_rs = snowflake.execute({sqlText: discover_sql});
     var discovered_count = 0;
     var added_count = 0;
     var updated_count = 0;
-    
+
     // Process each discovered agent
     while (agents_rs.next()) {
         discovered_count++;
@@ -112,24 +112,24 @@ $$
         var schema = agents_rs.getColumnValue('AGENT_SCHEMA');
         var name = agents_rs.getColumnValue('AGENT_NAME');
         var full_name = db + '.' + schema + '.' + name;
-        
+
         // Check include/exclude patterns
         if (INCLUDE_PATTERN && INCLUDE_PATTERN !== '%') {
             if (!full_name.match(new RegExp(INCLUDE_PATTERN.replace('%', '.*'), 'i'))) {
                 continue;
             }
         }
-        
+
         if (EXCLUDE_PATTERN) {
             if (full_name.match(new RegExp(EXCLUDE_PATTERN.replace('%', '.*'), 'i'))) {
                 continue;
             }
         }
-        
+
         // Merge into registry
         var merge_sql = `
             MERGE INTO AGENT_REGISTRY AS target
-            USING (SELECT 
+            USING (SELECT
                 '${db}' AS agent_database,
                 '${schema}' AS agent_schema,
                 '${name}' AS agent_name
@@ -137,26 +137,26 @@ $$
             ON target.agent_database = source.agent_database
                AND target.agent_schema = source.agent_schema
                AND target.agent_name = source.agent_name
-            WHEN MATCHED THEN 
+            WHEN MATCHED THEN
                 UPDATE SET last_discovered = CURRENT_TIMESTAMP()
             WHEN NOT MATCHED THEN
                 INSERT (agent_database, agent_schema, agent_name, is_active, include_pattern, exclude_pattern)
-                VALUES (source.agent_database, source.agent_schema, source.agent_name, 
-                        ${AUTO_ACTIVATE}, '${INCLUDE_PATTERN}', 
+                VALUES (source.agent_database, source.agent_schema, source.agent_name,
+                        ${AUTO_ACTIVATE}, '${INCLUDE_PATTERN}',
                         ${EXCLUDE_PATTERN ? "'" + EXCLUDE_PATTERN + "'" : 'NULL'})
         `;
-        
+
         var merge_rs = snowflake.execute({sqlText: merge_sql});
         merge_rs.next();
         var rows_affected = merge_rs.getColumnValue(1);
-        
+
         if (rows_affected > 0) {
             added_count++;
         } else {
             updated_count++;
         }
     }
-    
+
     return `Discovery complete. Found: ${discovered_count}, Added: ${added_count}, Updated: ${updated_count}`;
 $$;
 
@@ -211,18 +211,18 @@ DECLARE
 BEGIN
     -- Truncate snapshot table
     TRUNCATE TABLE AGENT_EVENTS_SNAPSHOT;
-    
+
     -- Loop through active agents
     FOR agent_record IN agent_cursor DO
         db := agent_record.agent_database;
         schema_name := agent_record.agent_schema;
         agent := agent_record.agent_name;
         agent_count := agent_count + 1;
-        
+
         -- Build dynamic SQL for this agent
         sql_stmt := '
             INSERT INTO AGENT_EVENTS_SNAPSHOT
-            SELECT 
+            SELECT
                 ''' || db || ''' AS agent_database,
                 ''' || schema_name || ''' AS agent_schema,
                 ''' || agent || ''' AS agent_name,
@@ -250,7 +250,7 @@ BEGIN
             ))
             WHERE record:timestamp >= DATEADD(''hour'', -' || LOOKBACK_HOURS || ', CURRENT_TIMESTAMP())
         ';
-        
+
         -- Execute with error handling
         BEGIN
             EXECUTE IMMEDIATE :sql_stmt;
@@ -262,7 +262,7 @@ BEGIN
                 CONTINUE;
         END;
     END FOR;
-    
+
     RETURN 'Loaded ' || event_count || ' events from ' || agent_count || ' agents';
 END;
 $$;
@@ -282,7 +282,7 @@ $$
 BEGIN
     -- Drop existing task if it exists
     DROP TASK IF EXISTS REFRESH_AGENT_EVENTS_TASK;
-    
+
     -- Create serverless task (runs every 10 minutes)
     CREATE TASK REFRESH_AGENT_EVENTS_TASK
         SCHEDULE = '10 minute'
@@ -290,13 +290,13 @@ BEGIN
         COMMENT = 'DEMO: Auto-refresh agent events every 10 minutes (serverless) | Expires: 2026-01-10'
     AS
         CALL REFRESH_AGENT_EVENTS(:LOOKBACK_HOURS);
-    
+
     -- Do initial refresh
     CALL REFRESH_AGENT_EVENTS(:LOOKBACK_HOURS);
-    
+
     -- Resume task
     ALTER TASK REFRESH_AGENT_EVENTS_TASK RESUME;
-    
+
     RETURN '✅ Monitoring active: Serverless task refreshing every 10 minutes (last ' || LOOKBACK_HOURS || 'h)';
 END;
 $$;
@@ -306,7 +306,7 @@ $$;
 -- Raw unified events from all monitored agents (reads from dynamic table)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW AGENT_EVENTS AS
-SELECT 
+SELECT
     agent_database,
     agent_schema,
     agent_name,
@@ -329,18 +329,18 @@ SELECT
     status,
     error_message,
     raw_attributes,
-    
+
     -- Derived fields
     DATE_TRUNC('hour', event_timestamp) AS event_hour,
     DATE_TRUNC('day', event_timestamp) AS event_date,
-    CASE 
+    CASE
         WHEN span_name LIKE '%LLM%' OR span_name LIKE '%COMPLETION%' THEN 'LLM_CALL'
         WHEN span_name LIKE '%TOOL%' THEN 'TOOL_EXECUTION'
         WHEN span_name LIKE '%RETRIEVAL%' OR span_name LIKE '%SEARCH%' THEN 'RETRIEVAL'
         WHEN span_name LIKE '%AGENT%' THEN 'AGENT_RUN'
         ELSE 'OTHER'
     END AS span_category
-    
+
 FROM AGENT_EVENTS_SNAPSHOT;
 
 COMMENT ON VIEW AGENT_EVENTS IS 'DEMO: Unified agent events (auto-refreshed every 10 minutes via serverless task) | Expires: 2026-01-10';
@@ -350,37 +350,37 @@ COMMENT ON VIEW AGENT_EVENTS IS 'DEMO: Unified agent events (auto-refreshed ever
 -- Thread-level aggregations showing conversation flows
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW THREAD_ACTIVITY AS
-SELECT 
+SELECT
     agent_full_name,
     thread_id,
     user_id,
-    
+
     -- Temporal boundaries
     MIN(event_timestamp) AS thread_start_time,
     MAX(event_timestamp) AS thread_last_activity,
     DATEDIFF('second', MIN(event_timestamp), MAX(event_timestamp)) AS thread_duration_seconds,
-    
+
     -- Activity counts
     COUNT(*) AS total_events,
     COUNT(DISTINCT span_id) AS total_spans,
     COUNT(DISTINCT CASE WHEN span_category = 'LLM_CALL' THEN span_id END) AS llm_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'TOOL_EXECUTION' THEN span_id END) AS tool_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'RETRIEVAL' THEN span_id END) AS retrieval_calls,
-    
+
     -- Token usage
     SUM(COALESCE(prompt_tokens, 0)) AS total_prompt_tokens,
     SUM(COALESCE(completion_tokens, 0)) AS total_completion_tokens,
     SUM(COALESCE(total_tokens, 0)) AS total_tokens,
-    
+
     -- Performance
     SUM(COALESCE(span_duration_ms, 0)) AS total_duration_ms,
     AVG(CASE WHEN span_category = 'LLM_CALL' THEN span_duration_ms END) AS avg_llm_latency_ms,
     AVG(CASE WHEN span_category = 'TOOL_EXECUTION' THEN span_duration_ms END) AS avg_tool_latency_ms,
-    
+
     -- Quality
     COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) AS error_count,
     COUNT(CASE WHEN status = 'success' THEN 1 END) AS success_count,
-    
+
     -- Latest state
     MAX_BY(status, event_timestamp) AS latest_status,
     MAX_BY(model_name, event_timestamp) AS latest_model
@@ -396,49 +396,49 @@ COMMENT ON VIEW THREAD_ACTIVITY IS 'DEMO: Thread-level aggregations showing conv
 -- Per-agent performance and usage metrics
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW AGENT_METRICS AS
-SELECT 
+SELECT
     agent_full_name,
     agent_database,
     agent_schema,
     agent_name,
-    
+
     -- Volume metrics
     COUNT(DISTINCT thread_id) AS unique_threads,
     COUNT(DISTINCT user_id) AS unique_users,
     COUNT(*) AS total_events,
     COUNT(DISTINCT span_id) AS total_spans,
-    
+
     -- Span breakdown
     COUNT(DISTINCT CASE WHEN span_category = 'LLM_CALL' THEN span_id END) AS llm_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'TOOL_EXECUTION' THEN span_id END) AS tool_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'RETRIEVAL' THEN span_id END) AS retrieval_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'AGENT_RUN' THEN span_id END) AS agent_runs,
-    
+
     -- Token metrics
     SUM(COALESCE(total_tokens, 0)) AS total_tokens,
     SUM(COALESCE(prompt_tokens, 0)) AS total_prompt_tokens,
     SUM(COALESCE(completion_tokens, 0)) AS total_completion_tokens,
     AVG(COALESCE(total_tokens, 0)) AS avg_tokens_per_event,
-    
+
     -- Performance metrics
     AVG(span_duration_ms) AS avg_span_duration_ms,
     PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY span_duration_ms) AS p50_span_duration_ms,
     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY span_duration_ms) AS p95_span_duration_ms,
     PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY span_duration_ms) AS p99_span_duration_ms,
-    
+
     -- Model distribution
     COUNT(DISTINCT model_name) AS models_used,
     MODE(model_name) AS most_used_model,
-    
+
     -- Error metrics
     COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) AS error_count,
     COUNT(CASE WHEN status = 'success' THEN 1 END) AS success_count,
     ROUND(
-        COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) * 100.0 
-        / NULLIF(COUNT(*), 0), 
+        COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) * 100.0
+        / NULLIF(COUNT(*), 0),
         2
     ) AS error_rate_pct,
-    
+
     -- Temporal
     MIN(event_timestamp) AS first_event,
     MAX(event_timestamp) AS last_event,
@@ -455,7 +455,7 @@ COMMENT ON VIEW AGENT_METRICS IS 'DEMO: Per-agent performance metrics, token usa
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW REALTIME_KPI AS
 WITH current_period AS (
-    SELECT 
+    SELECT
         COUNT(DISTINCT thread_id) AS active_threads,
         COUNT(DISTINCT user_id) AS active_users,
         COUNT(DISTINCT agent_full_name) AS active_agents,
@@ -469,7 +469,7 @@ WITH current_period AS (
 ),
 
 previous_period AS (
-    SELECT 
+    SELECT
         COUNT(DISTINCT thread_id) AS active_threads,
         COUNT(DISTINCT user_id) AS active_users,
         COUNT(DISTINCT agent_full_name) AS active_agents,
@@ -483,7 +483,7 @@ previous_period AS (
       AND event_timestamp < DATEADD('hour', -1, CURRENT_TIMESTAMP())
 )
 
-SELECT 
+SELECT
     'last_1h' AS period,
     c.active_threads,
     c.active_users,
@@ -494,13 +494,13 @@ SELECT
     ROUND(c.avg_span_duration_ms, 2) AS avg_span_duration_ms,
     c.errors,
     ROUND(c.errors * 100.0 / NULLIF(c.total_events, 0), 2) AS error_rate_pct,
-    
+
     -- Period over period changes
     ROUND((c.active_threads - p.active_threads) * 100.0 / NULLIF(p.active_threads, 0), 2) AS threads_change_pct,
     ROUND((c.llm_calls - p.llm_calls) * 100.0 / NULLIF(p.llm_calls, 0), 2) AS llm_calls_change_pct,
     ROUND((c.total_tokens - p.total_tokens) * 100.0 / NULLIF(p.total_tokens, 0), 2) AS tokens_change_pct,
     ROUND((c.avg_span_duration_ms - p.avg_span_duration_ms) * 100.0 / NULLIF(p.avg_span_duration_ms, 0), 2) AS latency_change_pct
-    
+
 FROM current_period c, previous_period p;
 
 COMMENT ON VIEW REALTIME_KPI IS 'DEMO: Real-time KPIs for last hour with hour-over-hour comparison | Expires: 2026-01-10';
@@ -510,23 +510,23 @@ COMMENT ON VIEW REALTIME_KPI IS 'DEMO: Real-time KPIs for last hour with hour-ov
 -- Hourly thread activity for time-series charts
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW HOURLY_THREAD_ACTIVITY AS
-SELECT 
+SELECT
     event_hour,
     agent_full_name,
-    
+
     COUNT(DISTINCT thread_id) AS unique_threads,
     COUNT(DISTINCT user_id) AS unique_users,
     COUNT(*) AS total_events,
     COUNT(DISTINCT CASE WHEN span_category = 'LLM_CALL' THEN span_id END) AS llm_calls,
     COUNT(DISTINCT CASE WHEN span_category = 'TOOL_EXECUTION' THEN span_id END) AS tool_calls,
-    
+
     SUM(COALESCE(total_tokens, 0)) AS total_tokens,
     SUM(COALESCE(prompt_tokens, 0)) AS total_prompt_tokens,
     SUM(COALESCE(completion_tokens, 0)) AS total_completion_tokens,
-    
+
     AVG(span_duration_ms) AS avg_span_duration_ms,
     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY span_duration_ms) AS p95_span_duration_ms,
-    
+
     COUNT(CASE WHEN status = 'error' OR error_message IS NOT NULL THEN 1 END) AS error_count
 
 FROM AGENT_EVENTS
@@ -539,7 +539,7 @@ COMMENT ON VIEW HOURLY_THREAD_ACTIVITY IS 'DEMO: Hourly aggregations for time-se
 -- Detailed timeline of events within a thread (for drill-down)
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW THREAD_TIMELINE AS
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     event_timestamp,
@@ -556,12 +556,12 @@ SELECT
     retrieval_query,
     status,
     error_message,
-    
+
     -- Sequence within thread
     ROW_NUMBER() OVER (PARTITION BY thread_id ORDER BY event_timestamp) AS event_sequence,
-    
+
     -- Time since thread start
-    DATEDIFF('second', 
+    DATEDIFF('second',
         FIRST_VALUE(event_timestamp) OVER (PARTITION BY thread_id ORDER BY event_timestamp),
         event_timestamp
     ) AS seconds_since_thread_start
@@ -611,19 +611,19 @@ CALL SETUP_MONITORING(24);
 -- -----------------------------------------------------------------------------
 -- DEPLOYMENT SUMMARY
 -- -----------------------------------------------------------------------------
-SELECT 
+SELECT
     '========================================' AS message
 UNION ALL SELECT '✅ WALLMONITOR DEPLOYED & ACTIVE'
 UNION ALL SELECT '========================================'
 UNION ALL SELECT ''
-UNION ALL SELECT 'Monitoring: ' || 
-    COALESCE((SELECT COUNT(DISTINCT agent_full_name)::STRING FROM AGENT_EVENTS), '0') || 
+UNION ALL SELECT 'Monitoring: ' ||
+    COALESCE((SELECT COUNT(DISTINCT agent_full_name)::STRING FROM AGENT_EVENTS), '0') ||
     ' agents'
-UNION ALL SELECT 'Active Threads (last 1h): ' || 
+UNION ALL SELECT 'Active Threads (last 1h): ' ||
     COALESCE((SELECT active_threads::STRING FROM REALTIME_KPI), '0')
-UNION ALL SELECT 'Tokens Used (last 1h): ' || 
+UNION ALL SELECT 'Tokens Used (last 1h): ' ||
     COALESCE((SELECT TO_VARCHAR(total_tokens, '999,999,999') FROM REALTIME_KPI), '0')
-UNION ALL SELECT 'Avg Latency: ' || 
+UNION ALL SELECT 'Avg Latency: ' ||
     COALESCE((SELECT ROUND(avg_span_duration_ms)::STRING || 'ms' FROM REALTIME_KPI), 'N/A')
 UNION ALL SELECT ''
 UNION ALL SELECT 'Dashboard Views Ready:'
@@ -633,4 +633,3 @@ UNION ALL SELECT '  • AGENT_METRICS'
 UNION ALL SELECT ''
 UNION ALL SELECT 'Data refreshes every 10 minutes (serverless)'
 UNION ALL SELECT 'See example_queries.sql for dashboard queries';
-

@@ -1,7 +1,7 @@
 # Auth Flow - Better Descriptions
 
-**Author:** SE Community  
-**Last Updated:** 2025-11-21  
+**Author:** SE Community
+**Last Updated:** 2025-11-21
 **Status:** Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -25,7 +25,7 @@ sequenceDiagram
     participant Meta as Metadata Services
     participant Cortex as Cortex API
     participant Schema as SNOWFLAKE_EXAMPLE
-    
+
     Note over User,Schema: 1. User Authentication
     User->>Client: Connect with credentials
     Client->>Auth: Authenticate (key-pair/OAuth/password)
@@ -35,7 +35,7 @@ sequenceDiagram
     Auth->>RoleCheck: Verify role membership
     RoleCheck-->>Auth: Role activated
     Auth-->>Client: Session established
-    
+
     Note over User,Schema: 2. Procedure Invocation Authorization
     User->>Client: CALL SFE_ENHANCE_SEMANTIC_VIEW(...)
     Client->>WH: Execute CALL statement
@@ -44,7 +44,7 @@ sequenceDiagram
     WH->>RoleCheck: Check EXECUTE on procedure
     RoleCheck-->>WH: ✓ Allowed
     WH->>Proc: Invoke procedure with user context
-    
+
     Note over User,Schema: 3. Source View Access Check
     Proc->>Meta: GET_DDL('SEMANTIC_VIEW', 'source_view')
     Meta->>RoleCheck: Check SELECT on source_view
@@ -56,13 +56,13 @@ sequenceDiagram
         Meta-->>Proc: Error: Access denied
         Proc-->>User: Error: Cannot access source view
     end
-    
+
     Note over User,Schema: 4. Metadata Description Check
     Proc->>Meta: DESCRIBE SEMANTIC VIEW source_view
     Meta->>RoleCheck: Check DESCRIBE privilege
     RoleCheck-->>Meta: ✓ Allowed (implied by SELECT)
     Meta-->>Proc: Dimension/fact metadata
-    
+
     Note over User,Schema: 5. Cortex API Authorization
     loop For each dimension/fact
         Proc->>Cortex: CORTEX.COMPLETE('llama3.1-70b', prompt)
@@ -77,7 +77,7 @@ sequenceDiagram
             Proc->>Proc: Use original description (fallback)
         end
     end
-    
+
     Note over User,Schema: 6. View Creation Authorization
     Proc->>Schema: CREATE SEMANTIC VIEW view_enhanced AS ...
     Schema->>RoleCheck: Check CREATE VIEW on schema
@@ -91,7 +91,7 @@ sequenceDiagram
         Schema-->>Proc: Error: Cannot create view
         Proc-->>User: Error: Insufficient privileges
     end
-    
+
     Note over User,Schema: 7. Enhanced View Query (Later)
     User->>Client: SELECT * FROM view_enhanced
     Client->>RoleCheck: Check SELECT on view_enhanced
@@ -245,7 +245,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 
 ### 1. User Authentication Boundary
 
-**Entry Point:** Client connection to Snowflake  
+**Entry Point:** Client connection to Snowflake
 **Controls:**
 - Credential validation (key, password, OAuth token)
 - Multi-factor authentication (if enabled)
@@ -258,7 +258,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 
 ### 2. Role Authorization Boundary
 
-**Entry Point:** Role activation and privilege checks  
+**Entry Point:** Role activation and privilege checks
 **Controls:**
 - RBAC role hierarchy
 - Least privilege principle
@@ -271,7 +271,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 
 ### 3. Procedure Execution Boundary
 
-**Entry Point:** Stored procedure invocation  
+**Entry Point:** Stored procedure invocation
 **Controls:**
 - Caller's rights execution (runs with invoker's privileges, not definer's)
 - No elevated privileges within procedure
@@ -284,7 +284,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 
 ### 4. Data Access Boundary
 
-**Entry Point:** Metadata and view access  
+**Entry Point:** Metadata and view access
 **Controls:**
 - Object-level permissions (per view, per schema)
 - No wildcards (must grant on specific objects)
@@ -297,7 +297,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 
 ### 5. AI Service Boundary
 
-**Entry Point:** Cortex API usage  
+**Entry Point:** Cortex API usage
 **Controls:**
 - Account-level Cortex privilege required
 - Per-call authorization
@@ -316,7 +316,7 @@ GRANT CREATE CORTEX MODEL ON ACCOUNT TO ROLE analyst_role;
 ```bash
 # Store private key securely (NEVER in repository)
 export SNOWFLAKE_PRIVATE_KEY_PATH="/secure/path/rsa_key.p8"
-export SNOWFLAKE_PRIVATE_KEY_PASSPHRASE="strong_passphrase"
+export SNOWFLAKE_PRIVATE_KEY_PASSPHRASE="strong_passphrase" # pragma: allowlist secret
 
 # Use in connection
 # Key is read from file, never hardcoded
@@ -328,7 +328,7 @@ export SNOWFLAKE_PRIVATE_KEY_PASSPHRASE="strong_passphrase"
 CREATE SECRET my_automation_secret
   TYPE = PASSWORD
   USERNAME = 'service_account'
-  PASSWORD = 'generated_password';
+  PASSWORD = 'generated_password'; -- pragma: allowlist secret
 
 -- Option 2: External secrets manager (AWS Secrets Manager, HashiCorp Vault)
 -- Retrieve credentials at runtime, never store in code
@@ -461,6 +461,5 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 
 ---
 
-**Last Review:** 2025-11-14  
+**Last Review:** 2025-11-14
 **Next Review Due:** 2026-02-14 (90 days)
-

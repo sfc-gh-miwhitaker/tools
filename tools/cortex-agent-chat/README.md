@@ -5,12 +5,12 @@
 
 # Cortex Agent Chat - React Integration Example
 
-> **DEMONSTRATION PROJECT - EXPIRES: 2026-01-14**  
-> This demo uses Snowflake features current as of December 2024.  
+> **DEMONSTRATION PROJECT - EXPIRES: 2026-01-14**
+> This demo uses Snowflake features current as of December 2024.
 > After expiration, this repository will be archived and made private.
 
-**Author:** SE Community  
-**Purpose:** Reference implementation showing React.js integration with Snowflake Cortex Agents  
+**Author:** SE Community
+**Purpose:** Reference implementation showing React.js integration with Snowflake Cortex Agents
 **Created:** 2025-12-15 | **Expires:** 2026-01-14 (30 days) | **Status:** ACTIVE
 
 ---
@@ -284,13 +284,13 @@ See `diagrams/` for detailed sequence diagrams (auth-flow, data-flow, network-fl
 
 ### Backend API Surface (what the React app calls)
 
-- `POST /api/threads`  
+- `POST /api/threads`
   Creates a Snowflake thread (proxies to `/api/v2/cortex/threads`). Returns `{ thread_id }`.
 
-- `POST /api/agent/run`  
+- `POST /api/agent/run`
   Non-streaming agent call (proxies to `/api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run`).
 
-- `POST /api/agent/run/stream`  
+- `POST /api/agent/run/stream`
   Streaming agent call (SSE) to the same Snowflake endpoint; forwards Snowflake SSE events to the browser.
 
 ### Sample streaming request (to backend)
@@ -326,8 +326,8 @@ data: {"text":"Based on the data, the top 5 customers are ..."}
 
 - **Signer location:** `server/index.js` (Express) using the private key from `.env.server.local`.
 - **Algorithm:** RS256; issuer includes the public key fingerprint per Snowflake requirements.
-- **Headers sent to Snowflake:**  
-  `Authorization: Bearer <KEYPAIR_JWT>`  
+- **Headers sent to Snowflake:**
+  `Authorization: Bearer <KEYPAIR_JWT>`
   `X-Snowflake-Authorization-Token-Type: KEYPAIR_JWT`
 - **Token lifetime:** 1 hour; cached and refreshed in the backend proxy.
 - **Security:** Private key never leaves the backend; Snowflake validates the signature against the user’s stored public key.
@@ -512,8 +512,8 @@ npm start
 | **Public key not assigned** | Run `DESC USER <username>;` - check `RSA_PUBLIC_KEY_FP` is populated |
 | **Wrong account format** | Use `xy12345.us-east-1` not `xy12345` or full URL |
 | **Username mismatch** | `.env.local` username must match Snowflake user with public key |
-| **Invalid private key format** | Ensure PEM format with `-----BEGIN PRIVATE KEY-----` header |
-| **Key-pair mismatch** | Public key in Snowflake must match private key in `.env.local` |
+| **Invalid private key format** | Ensure the backend is configured with a valid PEM private key (see `.env.server.local`) |
+| **Key-pair mismatch** | Public key in Snowflake must match the private key configured on the backend proxy |
 
 **Diagnostic Steps:**
 ```bash
@@ -603,52 +603,32 @@ SHOW AGENTS IN SCHEMA SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT;
 | Cause | How to Fix |
 |-------|------------|
 | **Incorrect newline escaping** | Private key must use literal `\n` (backslash-n) for line breaks |
-| **Extra whitespace** | Copy entire key including BEGIN/END lines, no trailing spaces |
-| **Wrong key format** | Use PKCS#8 (`BEGIN PRIVATE KEY`) not PKCS#1 (`BEGIN RSA PRIVATE KEY`) |
+| **Extra whitespace** | Copy the key cleanly; avoid stray spaces at line ends |
+| **Wrong key format** | Use a standard PEM-encoded RSA private key (PKCS#8 recommended) |
 | **Corrupted key file** | Regenerate key-pair with `openssl genrsa` |
 | **Setup script issue** | Manually fix the private key format (see below) |
 
-**Correct `.env.local` Format:**
+**Correct `.env.server.local` Format:**
 ```env
 # ✅ CORRECT - Single line with literal \n escape sequences
-REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhki...\n-----END PRIVATE KEY-----"
-
-# ❌ WRONG - Multi-line (won't parse)
-REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhki...
------END PRIVATE KEY-----"
-
-# ❌ WRONG - Actual newlines instead of \n
-REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhki...
------END PRIVATE KEY-----"
+SNOWFLAKE_PRIVATE_KEY_PEM="(single-line value with \\n sequences)"
 ```
 
 **Quick Fix (if setup script didn't format correctly):**
 ```bash
-# Option 1: Run the fix script (easiest)
-./tools/fix_private_key.sh
-
-# Option 2: One-liner to fix .env.local
+# One-liner to rebuild a single-line value with \\n escapes from rsa_key.pem
 PRIVATE_KEY=$(awk 'NR>1{printf "\\n"}{printf "%s",$0}' rsa_key.pem)
-sed -i.bak "s|REACT_APP_SNOWFLAKE_PRIVATE_KEY=.*|REACT_APP_SNOWFLAKE_PRIVATE_KEY=\"$PRIVATE_KEY\"|" .env.local
-
-# Option 3: Manually copy and format
-# 1. Open rsa_key.pem
-# 2. Copy entire contents
-# 3. Replace actual newlines with \n (backslash-n)
-# 4. Paste as single line in .env.local
+sed -i.bak "s|SNOWFLAKE_PRIVATE_KEY_PEM=.*|SNOWFLAKE_PRIVATE_KEY_PEM=\"$PRIVATE_KEY\"|" .env.server.local
 ```
 
 **Verify Format:**
 ```bash
 # Check if private key has proper escaping
-grep "REACT_APP_SNOWFLAKE_PRIVATE_KEY" .env.local | grep -o "\\\\n" | wc -l
+grep "^SNOWFLAKE_PRIVATE_KEY_PEM=" .env.server.local | grep -o "\\\\n" | wc -l
 # Should show a number > 0 (number of \n escape sequences)
 
 # Or visually inspect
-cat .env.local | grep PRIVATE_KEY
-# Should see: REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...
+grep "^SNOWFLAKE_PRIVATE_KEY_PEM=" .env.server.local
 ```
 
 ---
@@ -791,9 +771,6 @@ REACT_APP_SNOWFLAKE_USER=your_username
 REACT_APP_SNOWFLAKE_DATABASE=YOUR_DATABASE
 REACT_APP_SNOWFLAKE_SCHEMA=YOUR_SCHEMA
 REACT_APP_CORTEX_AGENT_NAME=YOUR_AGENT_NAME
-
-# Your key-pair (same as before)
-REACT_APP_SNOWFLAKE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 ```
 
 **Restart app after changes:**
@@ -902,7 +879,7 @@ rm rsa_key.pem rsa_key.pub
 rm .env.local
 
 # Verify no secrets remain
-grep -r "BEGIN PRIVATE KEY" .  # Should return nothing
+grep -r "PRIVATE_KEY" .  # Sanity check: no key material should be committed
 ```
 
 ---
@@ -957,12 +934,12 @@ npm install
 
 ## License & Attribution
 
-**Author:** SE Community  
-**Created:** 2025-12-15  
-**Expires:** 2026-01-14 (30 days)  
+**Author:** SE Community
+**Created:** 2025-12-15
+**Expires:** 2026-01-14 (30 days)
 **Status:** Active Reference Implementation
 
-**Reference Implementation Notice:**  
+**Reference Implementation Notice:**
 This code demonstrates production-grade architectural patterns and best practices for integrating React.js with Snowflake Cortex Agents. Review and customize security, authentication, and error handling for your organization's specific requirements before production deployment.
 
 **⚠️ Important:**
@@ -973,7 +950,7 @@ This code demonstrates production-grade architectural patterns and best practice
 
 ---
 
-**Questions or Issues?**  
+**Questions or Issues?**
 This is a reference implementation maintained by the Snowflake SE Community. For production support, consult Snowflake documentation or your account team.
 
 ---

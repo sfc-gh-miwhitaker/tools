@@ -2,7 +2,7 @@
 
 > **Purpose:** This guide provides exactly what you need to deliver Cortex Agent monitoring to customers.
 
-**Author:** SE Community  
+**Author:** SE Community
 **Expires:** 2026-01-10
 
 ---
@@ -18,7 +18,7 @@
 USE ROLE ACCOUNTADMIN;
 GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE ACCOUNTADMIN;
 
-SELECT 
+SELECT
     record:thread_id::STRING AS thread_id,
     record:attributes:user_id::STRING AS user_id,
     record:timestamp::TIMESTAMP_LTZ AS event_time,
@@ -48,7 +48,7 @@ LIMIT 100;
 ```sql
 -- Get instant KPIs for ONE agent (last hour)
 WITH events AS (
-    SELECT 
+    SELECT
         record:thread_id::STRING AS thread_id,
         record:span_name::STRING AS span_name,
         record:attributes:total_tokens::NUMBER AS tokens,
@@ -59,7 +59,7 @@ WITH events AS (
     ))
     WHERE record:timestamp >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
 )
-SELECT 
+SELECT
     COUNT(DISTINCT thread_id) AS active_threads,
     COUNT(*) AS total_events,
     SUM(CASE WHEN span_name = 'agent:run' THEN 1 ELSE 0 END) AS agent_runs,
@@ -71,7 +71,7 @@ SELECT
 FROM events;
 ```
 
-**When to use:** 
+**When to use:**
 - ✅ Demo/exploration
 - ✅ Single-agent debugging
 - ✅ Verifying observability access
@@ -103,7 +103,7 @@ FROM events;
 SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(...));
 ```
 
-**Pros:** Zero setup, real-time data  
+**Pros:** Zero setup, real-time data
 **Cons:** Must query each agent separately
 
 ---
@@ -128,13 +128,13 @@ SELECT * FROM REALTIME_KPI;
 SELECT * FROM THREAD_ACTIVITY ORDER BY thread_start_time DESC;
 ```
 
-**Pros:** 
+**Pros:**
 - Multi-agent unified view
 - Auto-discovery
 - 10-minute refresh
 - Dashboard-ready views
 
-**Cons:** 
+**Cons:**
 - Initial setup required
 - 10-minute data lag
 
@@ -153,7 +153,7 @@ SELECT * FROM THREAD_ACTIVITY ORDER BY thread_start_time DESC;
 - Store in your data warehouse
 - Build custom aggregations
 
-**Pros:** Full control, custom logic  
+**Pros:** Full control, custom logic
 **Cons:** You build and maintain everything
 
 ---
@@ -169,7 +169,7 @@ These queries are formatted for REST API consumption (e.g., React dashboard call
 -- Method: GET
 -- Refresh: Every 30-60 seconds
 
-SELECT 
+SELECT
     active_threads,
     active_users,
     active_agents,
@@ -209,7 +209,7 @@ FROM REALTIME_KPI;
 -- Parameters: ?limit=50&offset=0&agent_filter=null
 -- Refresh: Every 10-30 seconds
 
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -224,7 +224,7 @@ SELECT
     latest_status,
     latest_model
 FROM THREAD_ACTIVITY
-WHERE 
+WHERE
     (:agent_filter IS NULL OR agent_full_name = :agent_filter)
 ORDER BY thread_start_time DESC
 LIMIT :limit OFFSET :offset;
@@ -261,7 +261,7 @@ LIMIT :limit OFFSET :offset;
 -- Parameters: thread_id (path parameter)
 -- Refresh: On-demand (cached 10s)
 
-SELECT 
+SELECT
     event_timestamp,
     event_sequence,
     seconds_since_thread_start,
@@ -321,7 +321,7 @@ ORDER BY event_timestamp;
 -- Parameters: ?time_window=1h
 -- Refresh: Every 60 seconds
 
-SELECT 
+SELECT
     agent_full_name,
     unique_threads,
     unique_users,
@@ -368,7 +368,7 @@ ORDER BY unique_threads DESC;
 -- Parameters: ?hours=24
 -- Refresh: Every 60 seconds
 
-SELECT 
+SELECT
     event_hour,
     active_threads,
     unique_users,
@@ -420,7 +420,7 @@ ORDER BY event_hour;
 -- Parameters: ?limit=20
 -- Refresh: Every 30 seconds
 
-SELECT 
+SELECT
     event_timestamp,
     thread_id,
     agent_full_name,

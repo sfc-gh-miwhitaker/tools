@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const { createHash, createPublicKey, createSign } = require('crypto');
 const express = require('express');
 const cors = require('cors');
@@ -14,10 +15,25 @@ app.use(express.json({ limit: '1mb' }));
 
 const PORT = process.env.PORT || 4000;
 
+const resolvePrivateKeyPem = () => {
+  const fromEnv = process.env.SNOWFLAKE_PRIVATE_KEY_PEM;
+  if (fromEnv && `${fromEnv}`.trim()) {
+    return `${fromEnv}`;
+  }
+
+  const fromPath = process.env.SNOWFLAKE_PRIVATE_KEY_PATH;
+  if (fromPath && `${fromPath}`.trim()) {
+    const p = path.resolve(`${fromPath}`.trim());
+    return fs.readFileSync(p, 'utf8');
+  }
+
+  return '';
+};
+
 const CONFIG = {
   account: process.env.SNOWFLAKE_ACCOUNT,
   user: process.env.SNOWFLAKE_USER,
-  privateKey: process.env.SNOWFLAKE_PRIVATE_KEY_PEM,
+  privateKey: resolvePrivateKeyPem(),
   database: process.env.SNOWFLAKE_DATABASE,
   schema: process.env.SNOWFLAKE_SCHEMA,
   agentName: process.env.SNOWFLAKE_AGENT_NAME
@@ -323,7 +339,7 @@ app.post('/api/agent/run/stream', async (req, res) => {
     try {
       while (!cancelled) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           res.end();
           break;
@@ -357,4 +373,3 @@ app.post('/api/agent/run/stream', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend proxy listening on http://localhost:${PORT}`);
 });
-

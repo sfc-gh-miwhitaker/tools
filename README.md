@@ -5,8 +5,8 @@
 
 A curated collection of small, focused Snowflake tools and examples. Each tool demonstrates a specific capability or pattern without the overhead of a full project repository.
 
-**Author:** SE Community  
-**Purpose:** Central repository for standalone tools, examples, and utilities  
+**Author:** SE Community
+**Purpose:** Central repository for standalone tools, examples, and utilities
 **Pattern:** Each tool is self-contained with its own deployment and cleanup
 
 ---

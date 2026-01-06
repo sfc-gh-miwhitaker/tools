@@ -41,7 +41,7 @@ DROP SCHEMA IF EXISTS SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT CASCADE;
 -- PUBLIC KEY CLEANUP (OPTIONAL - MANUAL)
 -- ============================================================================
 -- Public key assignment can be removed if no longer needed
--- 
+--
 -- To remove your public key:
 --
 -- 1. Check current key assignment:
@@ -83,4 +83,3 @@ SELECT
     'Schema and agent removed' AS snowflake_cleanup,
     'Unset public key if desired (see instructions above)' AS manual_step_1,
     'Remove local files: node_modules, .env.local, rsa_key.pem' AS manual_step_2;
-

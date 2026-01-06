@@ -2,7 +2,7 @@
 
 > **Purpose:** Real-time monitoring for Cortex Agent threads and runs with near real-time observability.
 
-**Author:** SE Community  
+**Author:** SE Community
 **Expires:** 2026-01-10
 
 ---
@@ -75,7 +75,7 @@ USE ROLE ACCOUNTADMIN;
 GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE ACCOUNTADMIN;
 
 -- Replace: MY_DB, MY_SCHEMA, MY_AGENT with your agent
-SELECT 
+SELECT
     record:thread_id::STRING AS thread_id,
     record:timestamp::TIMESTAMP_LTZ AS event_time,
     record:span_name::STRING AS span_name,
@@ -252,13 +252,13 @@ VALUES ('MY_DB', 'MY_SCHEMA', 'SUPPORT_AGENT', TRUE, 'Customer support agent');
 
 ```sql
 -- Deactivate agent
-UPDATE AGENT_REGISTRY 
-SET is_active = FALSE 
+UPDATE AGENT_REGISTRY
+SET is_active = FALSE
 WHERE agent_name = 'test_agent';
 
 -- Reactivate
-UPDATE AGENT_REGISTRY 
-SET is_active = TRUE 
+UPDATE AGENT_REGISTRY
+SET is_active = TRUE
 WHERE agent_name = 'support_agent';
 ```
 

@@ -1,6 +1,6 @@
 # Contributing a New Tool
 
-Author: SE Community  
+Author: SE Community
 Last Updated: 2025-12-10
 
 ---
@@ -273,4 +273,3 @@ Reference these existing tools for patterns:
 ## Questions?
 
 If you're unsure whether your tool fits this collection or need help with patterns, check the existing tools or reach out to the SE Community.
-

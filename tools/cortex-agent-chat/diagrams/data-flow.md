@@ -1,8 +1,8 @@
 # Data Flow - Cortex Agent Chat (React UI)
 
-Author: SE Community  
-Last Updated: 2025-12-15  
-Expires: 2026-01-14 (30 days from creation)  
+Author: SE Community
+Last Updated: 2025-12-15
+Expires: 2026-01-14 (30 days from creation)
 Status: Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -26,17 +26,17 @@ graph TB
         BFF[Express Proxy<br/>localhost:4000]
         Signer[Key-Pair JWT Signer<br/>(private key server-side)]
     end
-    
+
     subgraph sfapi [Snowflake Cloud - REST API]
         ThreadsAPI[/POST /api/v2/cortex/threads/]
         AgentRun[/POST /api/v2/databases/{db}/schemas/{schema}/agents/{agent}:run/]
     end
-    
+
     subgraph sfproc [Snowflake Cloud - Processing]
         Agent[Cortex Agent<br/>SFE_REACT_DEMO_AGENT]
         LLM[Cortex LLM Engine<br/>Language Processing]
     end
-    
+
     User -->|Types message| Input
     Input -->|User message| UI
     UI -->|HTTPS /api/threads<br/>/api/agent/run| BFF
@@ -49,7 +49,7 @@ graph TB
     LLM -->|Generated response| Agent
     Agent -->|Response SSE/JSON| AgentRun
     AgentRun --> BFF --> UI --> Display --> User
-    
+
     style User fill:#e1f5ff
     style UI fill:#fff4e1
     style BFF fill:#e8f5e9
@@ -203,4 +203,3 @@ See `.cursor/DIAGRAM_CHANGELOG.md` for version history.
 ---
 
 *SE Community • Cortex Agent Chat Tool • Created: 2025-12-15 • Expires: 2026-01-14*
-

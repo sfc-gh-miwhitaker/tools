@@ -25,7 +25,7 @@ const MessageInput = ({ onSendMessage, isLoading, isDisabled = false }) => {
 
   const handleChange = (e) => {
     setMessage(e.target.value);
-    
+
     // Auto-resize textarea
     const textarea = e.target;
     textarea.style.height = 'auto';

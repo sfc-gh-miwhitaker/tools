@@ -101,7 +101,7 @@ from io import BytesIO
 
 def setup_app(session):
     """Creates the Streamlit app file in the stage."""
-    
+
     streamlit_code = '''
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
@@ -126,19 +126,19 @@ st.info("**Streamlit in Snowflake Demo** | Form data writes directly to a Snowfl
 # Form
 with st.form("contact_form", clear_on_submit=True):
     st.subheader("Submit Your Information")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         full_name = st.text_input("Full Name *", placeholder="Jane Smith")
-    
+
     with col2:
         email = st.text_input("Email Address *", placeholder="jane@example.com")
-    
+
     address = st.text_area("Address", placeholder="123 Main Street\\nCity, State 12345")
-    
+
     submitted = st.form_submit_button("Submit", use_container_width=True)
-    
+
     if submitted:
         if not full_name or not email:
             st.error("Please fill in all required fields (Name and Email)")
@@ -149,13 +149,13 @@ with st.form("contact_form", clear_on_submit=True):
                 safe_name = full_name.replace("'", "''")
                 safe_email = email.replace("'", "''")
                 safe_address = address.replace("'", "''") if address else ""
-                
+
                 insert_sql = f"""
                 INSERT INTO SFE_SUBMISSIONS (full_name, email, address)
                 VALUES ('{safe_name}', '{safe_email}', '{safe_address}')
                 """
                 session.sql(insert_sql).collect()
-                
+
                 st.success(f"Thank you, {full_name}! Your submission has been saved.")
                 st.balloons()
             except Exception as e:
@@ -168,7 +168,7 @@ st.subheader("📊 Recent Submissions")
 
 try:
     df = session.sql("""
-        SELECT 
+        SELECT
             submission_id,
             full_name,
             email,
@@ -178,14 +178,14 @@ try:
         ORDER BY submitted_at DESC
         LIMIT 10
     """).to_pandas()
-    
+
     if len(df) > 0:
         st.dataframe(df, use_container_width=True)
         total_count = session.sql("SELECT COUNT(*) AS cnt FROM SFE_SUBMISSIONS").collect()[0]["CNT"]
         st.metric("Total Submissions", total_count)
     else:
         st.info("No submissions yet. Be the first to submit!")
-        
+
 except Exception as e:
     st.error(f"Error loading submissions: {str(e)}")
 
@@ -193,17 +193,17 @@ except Exception as e:
 st.markdown("---")
 st.caption("Streamlit in Snowflake | SE Community | Expires: 2026-01-09")
 '''
-    
+
     # Wrap bytes in BytesIO for put_stream
     file_stream = BytesIO(streamlit_code.encode('utf-8'))
-    
+
     session.file.put_stream(
         input_stream=file_stream,
         stage_location='@SFE_STREAMLIT_STAGE/streamlit_app.py',
         auto_compress=False,
         overwrite=True
     )
-    
+
     return "Streamlit app file created successfully"
 $$;
 
@@ -222,4 +222,3 @@ SELECT
     'Contact Form (Streamlit)' AS tool,
     '2026-01-09' AS expires,
     'Navigate to Projects -> Streamlit -> SFE_CONTACT_FORM' AS next_step;
-

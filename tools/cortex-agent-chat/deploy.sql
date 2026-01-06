@@ -85,7 +85,7 @@ CREATE OR REPLACE AGENT SFE_REACT_DEMO_AGENT
     $$
     models:
       orchestration: auto
-    
+
     instructions:
       system: "You are the SFE React Demo Agent, helping users understand Snowflake capabilities through this React chat interface. You specialize in explaining Snowflake features, data warehousing concepts, SQL optimization, and Cortex AI capabilities. Provide concise, accurate responses with clear examples. If uncertain, acknowledge it clearly. This chat interface demonstrates REST API integration with Cortex Agents using key-pair JWT authentication from a React.js application."
       response: "Keep responses concise and well-structured. Use bullet points for lists and code blocks for SQL examples."
@@ -110,24 +110,24 @@ GRANT USAGE ON AGENT SFE_REACT_DEMO_AGENT TO ROLE SYSADMIN;
 -- INSTRUCTIONS FOR KEY-PAIR AUTHENTICATION SETUP
 -- ============================================================================
 -- To use this agent with the React app, you need to set up key-pair authentication
--- 
+--
 -- Step 1: Generate RSA Key-Pair (on your local machine)
--- 
+--
 -- # Generate private key (2048-bit RSA)
 -- openssl genrsa -out rsa_key.pem 2048
--- 
+--
 -- # Extract public key from private key
 -- openssl rsa -in rsa_key.pem -pubout -out rsa_key.pub
--- 
+--
 -- Step 2: Get Public Key Content (without BEGIN/END lines)
--- 
+--
 -- # View public key content
 -- cat rsa_key.pub | grep -v "BEGIN PUBLIC KEY" | grep -v "END PUBLIC KEY" | tr -d '\n'
--- 
+--
 -- # This gives you a long string like: MIIBIjANBgkqhki...
--- 
+--
 -- Step 3: Assign Public Key to Your Snowflake User
--- 
+--
 -- Replace <your_username> with your actual Snowflake username
 -- Replace <public_key_content> with the string from Step 2
 --
@@ -175,4 +175,3 @@ SELECT
     '  1. Generate RSA key-pair and assign public key' AS manual_step_1,
     '  2. Configure .env.local with credentials' AS manual_step_2,
     '  3. Run: npm install && npm start' AS manual_step_3;
-

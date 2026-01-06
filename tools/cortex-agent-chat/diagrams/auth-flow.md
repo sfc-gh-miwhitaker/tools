@@ -1,8 +1,8 @@
 # Auth Flow - Cortex Agent Chat (React UI)
 
-Author: SE Community  
-Last Updated: 2025-12-15  
-Expires: 2026-01-14 (30 days from creation)  
+Author: SE Community
+Last Updated: 2025-12-15
+Expires: 2026-01-14 (30 days from creation)
 Status: Reference Implementation
 
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
@@ -26,36 +26,36 @@ sequenceDiagram
     participant Auth as Auth Service
     participant RBAC as RBAC Engine
     participant Agent as Cortex Agent
-    
+
     Note over Admin,SF: Key-Pair Generation Phase (One-Time Setup)
-    
+
     Admin->>LocalMachine: Generate key-pair
     LocalMachine->>OpenSSL: openssl genrsa -out rsa_key.pem 2048
     OpenSSL-->>LocalMachine: Private key created
     LocalMachine->>OpenSSL: openssl rsa -in rsa_key.pem -pubout
     OpenSSL-->>LocalMachine: Public key extracted
-    
+
     Admin->>EnvServer: Store private key in .env.server.local (backend only)
     Admin->>SF: ALTER USER SET RSA_PUBLIC_KEY
     SF-->>Admin: Public key assigned (RSA_PUBLIC_KEY_FP set)
-    
+
     Admin->>SF: GRANT USAGE ON AGENT TO ROLE
     SF-->>Admin: Grant successful
-    
+
     Note over User,Agent: Runtime Authentication Flow (Each Request)
-    
+
     User->>React: Open http://localhost:3001
     React->>Backend: POST /api/threads (create thread)
     Backend->>Backend: Sign KEYPAIR_JWT with private key
     Backend->>SF: POST /api/v2/cortex/threads (Authorization: Bearer JWT)
     SF-->>Backend: thread_id
     Backend-->>React: thread_id
-    
+
     User->>React: Type message
     React->>Backend: POST /api/agent/run/stream {thread_id, parent_message_id, message}
     Backend->>Backend: Refresh JWT if expiring
     Backend->>SF: POST /agents/:run (KEYPAIR_JWT, Accept: text/event-stream)
-    
+
     SF->>Auth: Validate JWT (signature, exp, iss/sub)
     Auth->>RBAC: Verify agent usage grants
     RBAC-->>SF: Authorization successful
@@ -129,7 +129,7 @@ sequenceDiagram
     "iat": 1702648800,
     "exp": 1702652400
   },
-  "signature": "..." 
+  "signature": "..."
 }
 ```
 
@@ -178,15 +178,11 @@ sequenceDiagram
 ## Key-Pair Security Properties
 
 ### Private Key Format (PEM)
-```
------BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
-...
------END PRIVATE KEY-----
-```
+
+This demo uses a standard RSA private key in PEM format (kept server-side and never committed).
 - Format: PKCS#8 or PKCS#1
 - Encryption: RSA 2048-bit minimum
-- Storage: `.env.local` (gitignored), file permissions 0600
+- Storage: `.env.server.local` (gitignored) or local key file (file permissions 0600)
 
 ### Public Key Format (PEM)
 ```
@@ -241,9 +237,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 │                                             │
 │  .env.server.local                          │
 │  ├── SNOWFLAKE_PRIVATE_KEY_PEM              │
-│  │   -----BEGIN PRIVATE KEY-----            │
-│  │   ...                                    │
-│  │   -----END PRIVATE KEY-----              │
+│  │   [key material: local only]             │
 │  ├── SNOWFLAKE_ACCOUNT / USER / DB / AGENT  │
 │                                             │
 │  rsa_key.pem (local file)                  │
@@ -274,8 +268,8 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 │  └── [Template values only]                │
 │                                             │
 │  server.env.example                         │
-│  ├── SNOWFLAKE_PRIVATE_KEY_PEM (placeholder)│
-│  └── [Backend template only]               │
+│  ├── SNOWFLAKE_PRIVATE_KEY_PATH (template)  │
+│  └── [No key material]                      │
 │                                             │
 │  Security: No real credentials             │
 └─────────────────────────────────────────────┘
@@ -286,9 +280,10 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 ```
 ┌──────────────────────────────────────────────┐
 │ Trusted Zone - Developer Machine           │
-│  - localhost:3001                           │
-│  - .env.local with private key              │
-│  - JWT generation happens here              │
+│  - localhost:3001 (frontend)                │
+│  - localhost:4000 (backend proxy)           │
+│  - Private key stays on backend proxy       │
+│  - JWT generation happens server-side       │
 │  - No external access                       │
 └────────────────┬─────────────────────────────┘
                  │
@@ -318,7 +313,7 @@ User (with public key assigned)
 
 ### 401 Unauthorized (Invalid JWT)
 
-**Cause:** JWT signature verification failed  
+**Cause:** JWT signature verification failed
 **Response:**
 ```json
 {
@@ -333,7 +328,7 @@ User (with public key assigned)
 
 ### 401 Unauthorized (Expired JWT)
 
-**Cause:** JWT token expired (> 1 hour old)  
+**Cause:** JWT token expired (> 1 hour old)
 **Response:**
 ```json
 {
@@ -347,7 +342,7 @@ User (with public key assigned)
 
 ### 401 Unauthorized (Public Key Not Found)
 
-**Cause:** Public key not assigned to user  
+**Cause:** Public key not assigned to user
 **Response:**
 ```json
 {
@@ -366,7 +361,7 @@ DESC USER <username>;
 
 ### 403 Forbidden (Permissions)
 
-**Cause:** Role lacks USAGE grant on agent  
+**Cause:** Role lacks USAGE grant on agent
 **Response:**
 ```json
 {
@@ -376,8 +371,8 @@ DESC USER <username>;
 ```
 **Resolution:**
 ```sql
-GRANT USAGE ON CORTEX AGENT 
-  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_DEMO_AGENT 
+GRANT USAGE ON CORTEX AGENT
+  SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT.SFE_DEMO_AGENT
 TO ROLE SYSADMIN;
 ```
 

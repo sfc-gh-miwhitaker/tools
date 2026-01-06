@@ -115,7 +115,7 @@ from datetime import datetime
 def fetch_users(session: Session):
     """
     Fetches user data from JSONPlaceholder API and stores in Snowflake.
-    
+
     API: https://jsonplaceholder.typicode.com/users
     Returns: Table of fetched user data
     """
@@ -126,10 +126,10 @@ def fetch_users(session: Session):
     )
     response.raise_for_status()
     users = response.json()
-    
+
     # Clear existing data first
     session.sql("DELETE FROM SFE_USERS").collect()
-    
+
     # Insert each user using SQL (handles DEFAULT columns properly)
     for user in users:
         # Escape single quotes for SQL safety
@@ -140,13 +140,13 @@ def fetch_users(session: Session):
         website = user['website'].replace("'", "''")
         company_name = user.get('company', {}).get('name', '').replace("'", "''")
         city = user.get('address', {}).get('city', '').replace("'", "''")
-        
+
         insert_sql = f"""
         INSERT INTO SFE_USERS (user_id, name, username, email, phone, website, company_name, city)
         VALUES ({user['id']}, '{name}', '{username}', '{email}', '{phone}', '{website}', '{company_name}', '{city}')
         """
         session.sql(insert_sql).collect()
-    
+
     # Return results
     return session.table("SFE_USERS").select(
         "USER_ID", "NAME", "USERNAME", "EMAIL",
@@ -171,10 +171,10 @@ SELECT
 /*
  * -- Test the procedure
  * CALL SNOWFLAKE_EXAMPLE.SFE_API_FETCHER.SFE_FETCH_USERS();
- * 
+ *
  * -- View fetched data
  * SELECT * FROM SNOWFLAKE_EXAMPLE.SFE_API_FETCHER.SFE_USERS;
- * 
+ *
  * -- Check external access integration
  * SHOW INTEGRATIONS LIKE 'SFE_API_ACCESS';
  */

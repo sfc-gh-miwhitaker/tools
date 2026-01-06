@@ -102,4 +102,3 @@ For the full-featured version with detailed query-level analysis, see the origin
 ---
 
 *SE Community • Cortex Cost Calculator • 2025-12-10*
-

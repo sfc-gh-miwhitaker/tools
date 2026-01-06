@@ -180,7 +180,7 @@ FROM (
     WHERE DATABASE_NAME NOT IN ('SNOWFLAKE', 'SNOWFLAKE_SAMPLE_DATA')
 ) d
 LEFT JOIN (
-    SELECT TABLE_CATALOG AS DATABASE_NAME, 
+    SELECT TABLE_CATALOG AS DATABASE_NAME,
            SUM(ACTIVE_BYTES) / POWER(1024, 4) AS SIZE_TB
     FROM SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS
     GROUP BY TABLE_CATALOG
@@ -326,7 +326,7 @@ totals = pricing.groupby(["CLOUD", "REGION"])["RATE"].sum().sort_values().head(5
 for (cloud, region), rate in totals.items():
     st.write(f"- {cloud} / {region}: {rate:.2f} credits/TB total")
 '''
-    
+
     session.file.put_stream(BytesIO(code.encode('utf-8')), '@SFE_STREAMLIT_STAGE/app.py', auto_compress=False, overwrite=True)
     return "App uploaded"
 $$;
@@ -349,16 +349,16 @@ SELECT
 -- =============================================================================
 /*
  * To update pricing rates, simply UPDATE the SFE_PRICING table:
- * 
+ *
  * -- Update a specific rate
- * UPDATE SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC.SFE_PRICING 
+ * UPDATE SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC.SFE_PRICING
  * SET RATE = 2.75, UPDATED_AT = CURRENT_TIMESTAMP()
  * WHERE SERVICE_TYPE = 'DATA_TRANSFER' AND CLOUD = 'AWS' AND REGION = 'us-east-1';
- * 
+ *
  * -- Add a new region
  * INSERT INTO SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC.SFE_PRICING VALUES
  * ('DATA_TRANSFER', 'AWS', 'ap-northeast-1', 2.60, 'credits/TB', CURRENT_TIMESTAMP());
- * 
+ *
  * -- View current pricing
  * SELECT * FROM SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC.SFE_PRICING ORDER BY CLOUD, REGION, SERVICE_TYPE;
  */

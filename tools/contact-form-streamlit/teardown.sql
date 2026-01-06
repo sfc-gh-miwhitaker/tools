@@ -29,4 +29,3 @@ SELECT
     CURRENT_TIMESTAMP() AS completed_at,
     'Contact Form (Streamlit)' AS tool,
     'Schema SFE_CONTACT_FORM and all objects removed' AS message;
-

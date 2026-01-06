@@ -31,7 +31,7 @@ USE SCHEMA WALLMONITOR;
 -- CALL DISCOVER_AGENTS('%', NULL, TRUE);
 
 -- 1.2 View registered agents
-SELECT 
+SELECT
     agent_database,
     agent_schema,
     agent_name,
@@ -49,7 +49,7 @@ ORDER BY last_discovered DESC;
 SHOW TASKS LIKE 'REFRESH_AGENT_EVENTS_TASK';
 
 -- 1.5 Check task execution history
-SELECT 
+SELECT
     name,
     database_name,
     schema_name,
@@ -72,8 +72,8 @@ LIMIT 20;
 -- CALL DISCOVER_AGENTS('%PROD%', '%TEST%', TRUE);
 
 -- 1.8 Activate/deactivate specific agents
--- UPDATE AGENT_REGISTRY 
--- SET is_active = FALSE 
+-- UPDATE AGENT_REGISTRY
+-- SET is_active = FALSE
 -- WHERE agent_name = 'test_agent';
 -- After changing active agents, re-run: CALL SETUP_MONITORING(24);
 
@@ -93,7 +93,7 @@ LIMIT 20;
 -- =============================================================================
 
 -- 2.1 Main KPI Card (Last Hour)
-SELECT 
+SELECT
     active_threads,
     active_users,
     active_agents,
@@ -110,7 +110,7 @@ SELECT
 FROM REALTIME_KPI;
 
 -- 2.2 Current Active Threads (Live Activity)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -127,14 +127,14 @@ WHERE thread_last_activity >= DATEADD('minute', -15, CURRENT_TIMESTAMP())
 ORDER BY thread_last_activity DESC;
 
 -- 2.3 Agent Health Summary
-SELECT 
+SELECT
     agent_full_name,
     unique_threads,
     llm_calls,
     total_tokens,
     ROUND(avg_span_duration_ms, 2) AS avg_latency_ms,
     error_rate_pct,
-    CASE 
+    CASE
         WHEN error_rate_pct > 10 THEN 'CRITICAL'
         WHEN error_rate_pct > 5 THEN 'WARNING'
         WHEN avg_span_duration_ms > 5000 THEN 'SLOW'
@@ -149,7 +149,7 @@ ORDER BY last_event DESC;
 -- =============================================================================
 
 -- 3.1 Recent Threads (Main Thread List)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -172,7 +172,7 @@ LIMIT 50;
 
 -- 3.2 Thread Details (Single Thread Drill-Down)
 -- Replace :thread_id with parameter
-SELECT 
+SELECT
     event_timestamp,
     event_sequence,
     seconds_since_thread_start,
@@ -192,7 +192,7 @@ WHERE thread_id = :thread_id  -- Parameter placeholder
 ORDER BY event_timestamp;
 
 -- 3.3 Thread Conversation Flow (For Visualization)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -207,7 +207,7 @@ WHERE thread_id = :thread_id  -- Parameter placeholder
 ORDER BY event_timestamp;
 
 -- 3.4 Long-Running Threads (Performance Analysis)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -224,7 +224,7 @@ ORDER BY thread_duration_seconds DESC
 LIMIT 20;
 
 -- 3.5 High-Token Threads (Cost Analysis)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -239,7 +239,7 @@ ORDER BY total_tokens DESC
 LIMIT 20;
 
 -- 3.6 Threads with Errors
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -261,7 +261,7 @@ LIMIT 50;
 -- =============================================================================
 
 -- 4.1 Agent Performance Comparison
-SELECT 
+SELECT
     agent_full_name,
     unique_threads,
     unique_users,
@@ -278,7 +278,7 @@ FROM AGENT_METRICS
 ORDER BY unique_threads DESC;
 
 -- 4.2 Agent Activity Over Time (24h)
-SELECT 
+SELECT
     event_hour,
     agent_full_name,
     unique_threads,
@@ -291,7 +291,7 @@ WHERE event_hour >= DATEADD('hour', -24, CURRENT_TIMESTAMP())
 ORDER BY event_hour DESC, unique_threads DESC;
 
 -- 4.3 Model Usage by Agent
-SELECT 
+SELECT
     agent_full_name,
     model_name,
     COUNT(*) AS events,
@@ -304,7 +304,7 @@ GROUP BY agent_full_name, model_name
 ORDER BY events DESC;
 
 -- 4.4 Tool Usage Analysis
-SELECT 
+SELECT
     agent_full_name,
     tool_name,
     COUNT(*) AS tool_executions,
@@ -324,7 +324,7 @@ ORDER BY tool_executions DESC;
 -- =============================================================================
 
 -- 5.1 Hourly Thread Activity (Line Chart)
-SELECT 
+SELECT
     event_hour,
     SUM(unique_threads) AS total_threads,
     SUM(llm_calls) AS total_llm_calls,
@@ -336,7 +336,7 @@ GROUP BY event_hour
 ORDER BY event_hour;
 
 -- 5.2 Thread Activity by Agent (Stacked Area Chart)
-SELECT 
+SELECT
     event_hour,
     agent_full_name,
     SUM(unique_threads) AS threads,
@@ -348,7 +348,7 @@ GROUP BY event_hour, agent_full_name
 ORDER BY event_hour, threads DESC;
 
 -- 5.3 Token Usage Trend (Line Chart)
-SELECT 
+SELECT
     event_hour,
     SUM(total_tokens) AS total_tokens,
     SUM(total_prompt_tokens) AS prompt_tokens,
@@ -359,7 +359,7 @@ GROUP BY event_hour
 ORDER BY event_hour;
 
 -- 5.4 Latency Percentiles (Multi-Line Chart)
-SELECT 
+SELECT
     event_hour,
     ROUND(AVG(avg_span_duration_ms), 2) AS avg_latency,
     ROUND(AVG(p95_span_duration_ms), 2) AS p95_latency
@@ -369,7 +369,7 @@ GROUP BY event_hour
 ORDER BY event_hour;
 
 -- 5.5 Error Rate Trend (Line Chart)
-SELECT 
+SELECT
     event_hour,
     SUM(error_count) AS errors,
     SUM(unique_threads) AS total_threads,
@@ -385,7 +385,7 @@ ORDER BY event_hour;
 -- =============================================================================
 
 -- 6.1 Recent Errors
-SELECT 
+SELECT
     event_timestamp,
     agent_full_name,
     thread_id,
@@ -402,7 +402,7 @@ ORDER BY event_timestamp DESC
 LIMIT 50;
 
 -- 6.2 Error Frequency by Agent
-SELECT 
+SELECT
     agent_full_name,
     COUNT(*) AS error_count,
     COUNT(DISTINCT thread_id) AS threads_with_errors,
@@ -414,7 +414,7 @@ GROUP BY agent_full_name
 ORDER BY error_count DESC;
 
 -- 6.3 Error Frequency by Span Type
-SELECT 
+SELECT
     span_category,
     span_name,
     COUNT(*) AS error_count,
@@ -426,7 +426,7 @@ GROUP BY span_category, span_name
 ORDER BY error_count DESC;
 
 -- 6.4 Tool Errors
-SELECT 
+SELECT
     agent_full_name,
     tool_name,
     COUNT(*) AS error_count,
@@ -444,7 +444,7 @@ ORDER BY error_count DESC;
 -- =============================================================================
 
 -- 7.1 User Activity Summary
-SELECT 
+SELECT
     user_id,
     COUNT(DISTINCT agent_full_name) AS agents_used,
     COUNT(DISTINCT thread_id) AS total_threads,
@@ -460,7 +460,7 @@ GROUP BY user_id
 ORDER BY total_threads DESC;
 
 -- 7.2 Top Users by Activity (Last 24h)
-SELECT 
+SELECT
     user_id,
     COUNT(DISTINCT thread_id) AS threads,
     COUNT(DISTINCT agent_full_name) AS agents_used,
@@ -475,7 +475,7 @@ LIMIT 20;
 
 -- 7.3 User Thread History
 -- Replace :user_id with parameter
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     thread_start_time,
@@ -519,7 +519,7 @@ WHERE tool_name IS NOT NULL
 ORDER BY tool_name;
 
 -- 8.5 Active Time Range
-SELECT 
+SELECT
     MIN(event_timestamp) AS earliest_event,
     MAX(event_timestamp) AS latest_event,
     DATEDIFF('hour', MIN(event_timestamp), MAX(event_timestamp)) AS hours_of_data
@@ -531,8 +531,8 @@ FROM AGENT_EVENTS;
 -- =============================================================================
 
 -- 9.1 Thread Complexity Analysis
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN llm_calls = 0 THEN 'No LLM'
         WHEN llm_calls = 1 THEN 'Simple (1 LLM call)'
         WHEN llm_calls BETWEEN 2 AND 5 THEN 'Moderate (2-5 LLM calls)'
@@ -544,7 +544,7 @@ SELECT
     ROUND(AVG(tool_calls), 1) AS avg_tool_calls
 FROM THREAD_ACTIVITY
 GROUP BY complexity_category
-ORDER BY 
+ORDER BY
     CASE complexity_category
         WHEN 'No LLM' THEN 1
         WHEN 'Simple (1 LLM call)' THEN 2
@@ -553,7 +553,7 @@ ORDER BY
     END;
 
 -- 9.2 Retrieval Effectiveness
-SELECT 
+SELECT
     agent_full_name,
     COUNT(*) AS retrieval_calls,
     COUNT(DISTINCT thread_id) AS threads_with_retrieval,
@@ -565,7 +565,7 @@ GROUP BY agent_full_name
 ORDER BY retrieval_calls DESC;
 
 -- 9.3 Token Efficiency by Agent
-SELECT 
+SELECT
     agent_full_name,
     COUNT(DISTINCT thread_id) AS threads,
     SUM(llm_calls) AS llm_calls,
@@ -577,7 +577,7 @@ GROUP BY agent_full_name
 ORDER BY total_tokens DESC;
 
 -- 9.4 Thread Success Rate by Agent
-SELECT 
+SELECT
     agent_full_name,
     COUNT(*) AS total_threads,
     COUNT(CASE WHEN error_count = 0 THEN 1 END) AS successful_threads,
@@ -593,7 +593,7 @@ ORDER BY success_rate_pct ASC;
 -- =============================================================================
 
 -- 10.1 Slow Threads Alert (>30 seconds)
-SELECT 
+SELECT
     thread_id,
     agent_full_name,
     user_id,
@@ -608,7 +608,7 @@ WHERE thread_duration_seconds > 30
 ORDER BY thread_duration_seconds DESC;
 
 -- 10.2 High Error Rate Alert (>10% errors)
-SELECT 
+SELECT
     agent_full_name,
     COUNT(*) AS recent_threads,
     SUM(error_count) AS total_errors,
@@ -620,7 +620,7 @@ HAVING error_rate_pct > 10
 ORDER BY error_rate_pct DESC;
 
 -- 10.3 No Activity Alert (agents with no threads in last hour)
-SELECT 
+SELECT
     r.agent_database,
     r.agent_schema,
     r.agent_name,
@@ -629,14 +629,14 @@ SELECT
 FROM AGENT_REGISTRY r
 WHERE r.is_active = TRUE
   AND NOT EXISTS (
-      SELECT 1 
+      SELECT 1
       FROM AGENT_EVENTS e
       WHERE e.agent_full_name = r.agent_database || '.' || r.agent_schema || '.' || r.agent_name
         AND e.event_timestamp >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
   );
 
 -- 10.4 High Token Usage Alert (>100k tokens in last hour)
-SELECT 
+SELECT
     agent_full_name,
     SUM(total_tokens) AS total_tokens_last_hour,
     COUNT(DISTINCT thread_id) AS thread_count
