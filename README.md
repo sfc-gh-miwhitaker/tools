@@ -24,13 +24,14 @@ A curated collection of small, focused Snowflake tools and examples. Each tool d
 
 | Tool | Description | Snowflake Features | Status |
 |------|-------------|-------------------|--------|
-| [Cortex Agent Chat (React UI)](/tools/cortex-agent-chat/) | Modern React chat interface for Cortex Agents | Cortex Agents, REST API, Programmatic Access Tokens | ✅ Active |
+| [Cortex Agent Chat (React UI)](/tools/cortex-agent-chat/) | Modern React chat interface for Cortex Agents | Cortex Agents, REST API, Key-Pair JWT | ✅ Active |
 | [Wallmonitor](/tools/wallmonitor/) | Cortex Agent monitoring & thread analytics | GET_AI_OBSERVABILITY_EVENTS, Serverless Tasks, Views | ✅ Active |
 | [Contact Form (Streamlit)](/tools/contact-form-streamlit/) | Form UI that writes to Snowflake table | Streamlit in Snowflake, Snowpark | ✅ Active |
 | [API Data Fetcher](/tools/api-data-fetcher/) | Stored procedure that fetches from REST API | External Access Integration, Python Procedures | ✅ Active |
 | [Replication Cost Calculator](/tools/replication-cost-calculator/) | DR/Replication cost estimator | Streamlit, ACCOUNT_USAGE | ✅ Active |
 | [Cortex Cost Calculator](/tools/cortex-cost-calculator/) | Cortex AI usage monitoring & forecasting | Streamlit, ACCOUNT_USAGE, Serverless Tasks | ✅ Active |
 | [Semantic View Enhancer](/tools/semantic-view-enhancer/) | AI-enhanced semantic view descriptions | Cortex AI Complete, Semantic Views, Python Procedures | ✅ Active |
+| [Replication Workbook (Notebook)](/tools/replication-workbook/) | Snowsight notebook guide for database replication | Snowflake Notebooks | ✅ Active |
 
 ---
 
@@ -51,7 +52,8 @@ tools/
     ├── api-data-fetcher/           # API fetch procedure
     ├── replication-cost-calculator/ # DR cost estimator
     ├── cortex-cost-calculator/     # Cortex AI cost monitoring
-    └── semantic-view-enhancer/     # AI-enhanced semantic views
+    ├── semantic-view-enhancer/     # AI-enhanced semantic views
+    └── replication-workbook/       # Snowsight notebook (ipynb) guide
 ```
 
 ---
