@@ -2,13 +2,13 @@
 
 This folder contains Snowflake Notebooks you can import into Snowsight:
 
-- `database_replication_guide.ipynb` - **Enterprise/Standard**: basic redundancy with replication groups (read-only replicas; no promotion)
-- `business_critical_business_continuity_guide.ipynb` - **Business Critical**: business continuity with failover groups (promotion/runbook)
+- `Enterprise Edition.ipynb` - **Enterprise/Standard**: basic redundancy with replication groups (read-only replicas; no promotion)
+- `Business_Critical_Edition.ipynb` - **Business Critical**: business continuity with failover groups (promotion/runbook)
 
 ## Which guide should I use?
 
-- **Basic redundancy (read-only replicas)**: use `database_replication_guide.ipynb`
-- **Business continuity (promotion / failover)**: use `business_critical_business_continuity_guide.ipynb`
+- **Basic redundancy (read-only replicas)**: use `Enterprise Edition.ipynb`
+- **Business continuity (promotion / failover)**: use `Business_Critical_Edition.ipynb`
 
 ## Prerequisites
 
@@ -22,14 +22,14 @@ If you already have this repository checked out locally, you already have the no
 Otherwise, download it from GitHub:
 
 1. Open the notebook file in GitHub:
-   - `tools/replication-workbook/database_replication_guide.ipynb`, or
-   - `tools/replication-workbook/business_critical_business_continuity_guide.ipynb`
+   - `tools/replication-workbook/Enterprise Edition.ipynb`, or
+   - `tools/replication-workbook/Business_Critical_Edition.ipynb`
 2. Download the file to your computer (the exact UI varies; "Download raw file" is common).
 
 Alternative: Download the repository as a ZIP (GitHub: Code -> Download ZIP), unzip it, then find:
 
-- `tools/replication-workbook/database_replication_guide.ipynb`
-- `tools/replication-workbook/business_critical_business_continuity_guide.ipynb`
+- `tools/replication-workbook/Enterprise Edition.ipynb`
+- `tools/replication-workbook/Business_Critical_Edition.ipynb`
 
 ## Upload/import into Snowsight
 
