@@ -3,11 +3,12 @@
 > **Purpose:** This guide provides exactly what you need to deliver Cortex Agent monitoring to customers.
 
 **Author:** SE Community
-**Expires:** 2026-01-10
+**Created:** 2026-01-07
+**Expires:** 2026-02-06
 
 ---
 
-## 1️⃣ One-Shot Live Query (Get Metrics NOW)
+## 1. One-shot live query (get metrics now)
 
 ### Simplest Possible Query - Single Agent
 
@@ -71,22 +72,22 @@ SELECT
 FROM events;
 ```
 
-**When to use:**
-- ✅ Demo/exploration
-- ✅ Single-agent debugging
-- ✅ Verifying observability access
-- ❌ Production dashboards (too slow for multiple agents)
+When to use:
+- Demo/exploration
+- Single-agent debugging
+- Verifying observability access
+- Not recommended for multi-agent dashboards (too slow to query each agent individually)
 
 ---
 
-## 2️⃣ Monitoring Strategies (Choose Your Path)
+## 2. Monitoring strategies (choose your path)
 
 ### Strategy Matrix
 
 | Approach | Setup Time | Refresh Latency | Best For | Limitations |
 |----------|------------|-----------------|----------|-------------|
 | **One-Shot Query** | None | Real-time (seconds) | Single agent, debugging | Manual query per agent |
-| **Automated (Wallmonitor)** | 5 minutes | 10 minutes | Multi-agent dashboards | Requires setup |
+| **Automated (Wallmonitor + Streamlit)** | 5 minutes | 10 minutes (ingest) / 30 minutes (history rollups) | Multi-agent dashboards | Requires setup |
 | **Custom ETL** | Hours | Your choice | Enterprise integration | Build your own |
 
 ### Strategy 1: One-Shot (No Setup)
@@ -100,7 +101,15 @@ FROM events;
 **How:**
 ```sql
 -- Just query GET_AI_OBSERVABILITY_EVENTS() directly
-SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(...));
+SELECT
+    record:timestamp::TIMESTAMP_LTZ AS event_time,
+    record:span_name::STRING AS span_name,
+    record:attributes:thread_id::STRING AS thread_id,
+    record:attributes:user_id::STRING AS user_id,
+    record:attributes:total_tokens::NUMBER AS total_tokens,
+    record:attributes:duration_ms::NUMBER AS duration_ms,
+    record:attributes:status::STRING AS status
+FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(...));
 ```
 
 **Pros:** Zero setup, real-time data
@@ -121,12 +130,38 @@ SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(...));
 -- Deploy Wallmonitor (5 minutes)
 -- Run deploy.sql
 CALL DISCOVER_AGENTS('%', NULL, TRUE);
-CALL SETUP_MONITORING(24);
+CALL SETUP_MONITORING(24, 30);
 
 -- Query unified views
-SELECT * FROM REALTIME_KPI;
-SELECT * FROM THREAD_ACTIVITY ORDER BY thread_start_time DESC;
+SELECT
+    active_threads,
+    active_users,
+    active_agents,
+    llm_calls,
+    total_tokens,
+    avg_span_duration_ms,
+    error_rate_pct
+FROM REALTIME_KPI;
+
+SELECT
+    thread_id,
+    agent_full_name,
+    user_id,
+    thread_start_time,
+    thread_last_activity,
+    thread_duration_seconds,
+    llm_calls,
+    tool_calls,
+    retrieval_calls,
+    total_tokens,
+    error_count,
+    latest_status,
+    latest_model
+FROM THREAD_ACTIVITY
+ORDER BY thread_start_time DESC;
 ```
+
+Open Streamlit dashboard in Snowsight: Projects -> Streamlit -> WALLMONITOR_DASHBOARD
 
 **Pros:**
 - Multi-agent unified view
@@ -158,7 +193,7 @@ SELECT * FROM THREAD_ACTIVITY ORDER BY thread_start_time DESC;
 
 ---
 
-## 3️⃣ Dashboard Query Patterns (API-Ready)
+## 3. Dashboard query patterns (API-ready)
 
 These queries are formatted for REST API consumption (e.g., React dashboard calling Snowflake SQL API).
 
@@ -509,7 +544,7 @@ Are you monitoring just ONE agent?
 
 ---
 
-## 📊 Complete Dashboard Example (React)
+## Complete dashboard example (React)
 
 ### Dashboard Component Structure
 
@@ -599,7 +634,7 @@ Are you monitoring just ONE agent?
 
 ---
 
-## 🚀 Next Steps After Delivery
+## Next steps after delivery
 
 1. **Immediate (Day 1):**
    - Verify one-shot query works

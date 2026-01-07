@@ -5,7 +5,8 @@
 --          Cortex Agent threads and runs
 -- Schema: SNOWFLAKE_EXAMPLE.WALLMONITOR
 -- Author: SE Community
--- Expires: 2026-01-10
+-- Created: 2026-01-07
+-- Expires: 2026-02-06
 --
 -- Organization:
 --   1. Setup & Discovery
@@ -43,7 +44,7 @@ FROM AGENT_REGISTRY
 ORDER BY last_discovered DESC;
 
 -- 1.3 Activate monitoring (creates serverless task)
--- CALL SETUP_MONITORING(24);
+-- CALL SETUP_MONITORING(24, 30);
 
 -- 1.4 Check serverless task status
 SHOW TASKS LIKE 'REFRESH_AGENT_EVENTS_TASK';
@@ -66,7 +67,7 @@ ORDER BY scheduled_time DESC
 LIMIT 20;
 
 -- 1.6 Manual refresh (on-demand)
--- CALL REFRESH_AGENT_EVENTS(24);
+-- CALL REFRESH_AGENT_EVENTS(24, 30);
 
 -- 1.7 Discover agents with filtering (example: only production agents)
 -- CALL DISCOVER_AGENTS('%PROD%', '%TEST%', TRUE);
@@ -75,7 +76,7 @@ LIMIT 20;
 -- UPDATE AGENT_REGISTRY
 -- SET is_active = FALSE
 -- WHERE agent_name = 'test_agent';
--- After changing active agents, re-run: CALL SETUP_MONITORING(24);
+-- After changing active agents, re-run: CALL SETUP_MONITORING(24, 30);
 
 -- 1.9 Add agent manually
 -- INSERT INTO AGENT_REGISTRY (agent_database, agent_schema, agent_name, is_active, notes)
@@ -645,3 +646,109 @@ WHERE thread_start_time >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
 GROUP BY agent_full_name
 HAVING total_tokens_last_hour > 100000
 ORDER BY total_tokens_last_hour DESC;
+
+-- =============================================================================
+-- 11. RECENT HISTORY (7-30D) - Uses *_RECENT views backed by dynamic tables
+-- =============================================================================
+
+-- 11.1 Recent threads (last 7 days)
+SELECT
+    thread_id,
+    agent_full_name,
+    user_id,
+    thread_start_time,
+    thread_last_activity,
+    thread_duration_seconds,
+    llm_calls,
+    tool_calls,
+    retrieval_calls,
+    total_tokens,
+    error_count,
+    latest_status,
+    latest_model
+FROM THREAD_ACTIVITY_RECENT
+WHERE thread_start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+ORDER BY thread_start_time DESC
+LIMIT 100;
+
+-- 11.2 Agent performance (last 30 days)
+SELECT
+    agent_full_name,
+    unique_threads,
+    unique_users,
+    llm_calls,
+    tool_calls,
+    retrieval_calls,
+    total_tokens,
+    avg_span_duration_ms,
+    p95_span_duration_ms,
+    error_rate_pct,
+    most_used_model,
+    last_event
+FROM AGENT_METRICS_RECENT
+WHERE last_event >= DATEADD('day', -30, CURRENT_TIMESTAMP())
+ORDER BY unique_threads DESC;
+
+-- 11.3 Hourly trend (last 30 days, all agents)
+SELECT
+    event_hour,
+    SUM(unique_threads) AS total_threads,
+    SUM(llm_calls) AS total_llm_calls,
+    SUM(total_tokens) AS total_tokens,
+    ROUND(AVG(avg_span_duration_ms), 2) AS avg_latency_ms,
+    SUM(error_count) AS errors
+FROM HOURLY_THREAD_ACTIVITY_RECENT
+WHERE event_hour >= DATEADD('day', -30, CURRENT_TIMESTAMP())
+GROUP BY event_hour
+ORDER BY event_hour;
+
+-- 11.4 Thread timeline (use for drill-down over 7-30d)
+-- Replace :thread_id with parameter
+SELECT
+    event_timestamp,
+    event_sequence,
+    seconds_since_thread_start,
+    span_name,
+    span_category,
+    model_name,
+    total_tokens,
+    span_duration_ms,
+    tool_name,
+    status,
+    error_message
+FROM THREAD_TIMELINE_RECENT
+WHERE thread_id = :thread_id
+ORDER BY event_timestamp;
+
+-- =============================================================================
+-- 12. OPTIONAL: USAGE ANALYTICS (AI_OBSERVABILITY_EVENTS)
+-- =============================================================================
+-- Requires AI Observability lookup privileges. If available, enable:
+-- CALL SETUP_USAGE_ANALYTICS(30);
+
+-- 12.1 Requests by user (last N days, based on setup)
+SELECT
+    agent_database,
+    agent_schema,
+    agent_name,
+    user_name,
+    total_requests,
+    unique_threads,
+    avg_response_duration_ms,
+    first_access_time,
+    last_access_time
+FROM AGENT_USAGE_BY_USER
+ORDER BY total_requests DESC
+LIMIT 200;
+
+-- 12.2 Requests by agent (summary)
+SELECT
+    agent_full_name,
+    total_requests,
+    unique_users,
+    unique_threads,
+    avg_response_duration_ms,
+    first_access_time,
+    last_access_time
+FROM AGENT_USAGE_BY_AGENT
+ORDER BY total_requests DESC;
