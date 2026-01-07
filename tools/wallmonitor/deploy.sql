@@ -91,12 +91,7 @@ $$
     try {
         snowflake.execute({sqlText: "SHOW AGENTS IN ACCOUNT"});
     } catch(err) {
-        // If SHOW fails, try organization level (may require elevated privileges)
-        try {
-            snowflake.execute({sqlText: "SHOW AGENTS IN ORGANIZATION"});
-        } catch(org_err) {
-            return "ERROR: Unable to enumerate agents. Ensure you have proper privileges.";
-        }
+        return "ERROR: Unable to enumerate agents. Ensure you have proper privileges.";
     }
 
     // Get results
@@ -285,11 +280,11 @@ BEGIN
 
     -- Create serverless task (runs every 10 minutes)
     CREATE TASK REFRESH_AGENT_EVENTS_TASK
-        SCHEDULE = '10 minute'
+        SCHEDULE = '10 MINUTES'
         USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
         COMMENT = 'DEMO: Auto-refresh agent events every 10 minutes (serverless) | Expires: 2026-01-10'
     AS
-        CALL REFRESH_AGENT_EVENTS(:LOOKBACK_HOURS);
+        CALL REFRESH_AGENT_EVENTS(24);
 
     -- Do initial refresh
     CALL REFRESH_AGENT_EVENTS(:LOOKBACK_HOURS);
