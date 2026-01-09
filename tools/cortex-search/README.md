@@ -72,16 +72,6 @@ SELECT PARSE_JSON(
 DESCRIBE CORTEX SEARCH SERVICE my_db.my_schema.my_search;
 ```
 
-### Deploy with Snowflake CLI
-
-```bash
-snow sql -f deploy_search.sql \
-  -D database=PROD_DB \
-  -D schema=SERVICES \
-  -D warehouse=PROD_WH \
-  --connection prod
-```
-
 ## Filter Operators
 
 | Operator | Example |

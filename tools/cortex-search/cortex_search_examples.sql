@@ -100,21 +100,22 @@ AS (
 DESCRIBE CORTEX SEARCH SERVICE my_search_service;
 
 -- Get specific properties for deployment script
+-- Note: DESCRIBE output columns are lowercase and require double-quoted identifiers
 SELECT
   'CREATE OR REPLACE CORTEX SEARCH SERVICE ' ||
-  database_name || '.' || schema_name || '.' || name ||
-  ' ON ' || search_column ||
-  CASE WHEN attribute_columns IS NOT NULL
-    THEN ' ATTRIBUTES ' || attribute_columns
+  "database_name" || '.' || "schema_name" || '.' || "name" ||
+  ' ON ' || "search_column" ||
+  CASE WHEN "attribute_columns" IS NOT NULL
+    THEN ' ATTRIBUTES ' || "attribute_columns"
     ELSE ''
   END ||
-  ' WAREHOUSE = ' || warehouse ||
-  ' TARGET_LAG = ''' || target_lag || '''' ||
-  CASE WHEN embedding_model IS NOT NULL
-    THEN ' EMBEDDING_MODEL = ''' || embedding_model || ''''
+  ' WAREHOUSE = ' || "warehouse" ||
+  ' TARGET_LAG = ''' || "target_lag" || '''' ||
+  CASE WHEN "embedding_model" IS NOT NULL
+    THEN ' EMBEDDING_MODEL = ''' || "embedding_model" || ''''
     ELSE ''
   END ||
-  ' AS (' || definition || ');' AS create_statement
+  ' AS (' || "definition" || ');' AS create_statement
 FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
 
 -- ============================================================================
