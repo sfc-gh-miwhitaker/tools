@@ -26,6 +26,30 @@ Monitor Snowflake Cortex AI service costs and forecast future spend.
 
 ---
 
+## Ad-Hoc Queries (No Deployment Required)
+
+Need quick answers without deploying the full tool? Use `quickstart_queries.sql`:
+
+| Query | Purpose |
+|-------|---------|
+| 1 | AI Services total spend summary (30 days) |
+| 2 | Top 10 most expensive days (identify spikes) |
+| 3 | LLM model cost comparison |
+| 4 | Service breakdown (Analyst vs Search vs Functions) |
+| 5 | Week-over-week trend analysis |
+| 6 | User-level Cortex Analyst consumption |
+| 7 | Cost efficiency ranking ($/M tokens by model) |
+| 8 | Daily run rate + monthly projection |
+| 9 | Document AI volume and cost analysis |
+| 10 | Cost anomaly detection |
+
+```sql
+-- Copy any query from quickstart_queries.sql into Snowsight
+-- All queries work standalone - no deploy.sql required
+```
+
+---
+
 ## Objects Created
 
 | Object | Name | Purpose |
