@@ -160,19 +160,17 @@ FROM (
 DESCRIBE CORTEX SEARCH SERVICE SNOWFLAKE_EXAMPLE.CORTEX_SEARCH.TRANSCRIPT_SEARCH_V1;
 
 -- Store the spec in a variable/table for recreation
--- Note: DESCRIBE output columns are lowercase and require double-quoted identifiers
--- We alias to uppercase for easier reference in subsequent queries
 CREATE OR REPLACE TABLE SNOWFLAKE_EXAMPLE.CORTEX_SEARCH.SERVICE_SPEC AS
 SELECT
-  "name" AS SERVICE_NAME,
-  "database_name" AS DATABASE_NAME,
-  "schema_name" AS SCHEMA_NAME,
-  "search_column" AS SEARCH_COLUMN,
-  "attribute_columns" AS ATTRIBUTE_COLUMNS,
-  "warehouse" AS WAREHOUSE,
-  "target_lag" AS TARGET_LAG,
-  "definition" AS SOURCE_QUERY,
-  "embedding_model" AS EMBEDDING_MODEL
+  name AS service_name,
+  database_name,
+  schema_name,
+  search_column,
+  attribute_columns,
+  warehouse,
+  target_lag,
+  definition AS source_query,
+  embedding_model
 FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
 
 -- View the exported spec
@@ -180,14 +178,14 @@ SELECT * FROM SNOWFLAKE_EXAMPLE.CORTEX_SEARCH.SERVICE_SPEC;
 
 -- Generate the CREATE statement
 SELECT
-  'CREATE OR REPLACE CORTEX SEARCH SERVICE ' || DATABASE_NAME || '.' || SCHEMA_NAME || '.' || SERVICE_NAME || '_V2' || CHR(10) ||
-  '  ON ' || SEARCH_COLUMN || CHR(10) ||
-  '  ATTRIBUTES ' || ATTRIBUTE_COLUMNS || CHR(10) ||
-  '  WAREHOUSE = ' || WAREHOUSE || CHR(10) ||
-  '  TARGET_LAG = ''' || TARGET_LAG || '''' || CHR(10) ||
+  'CREATE OR REPLACE CORTEX SEARCH SERVICE ' || database_name || '.' || schema_name || '.' || service_name || '_V2' || CHR(10) ||
+  '  ON ' || search_column || CHR(10) ||
+  '  ATTRIBUTES ' || attribute_columns || CHR(10) ||
+  '  WAREHOUSE = ' || warehouse || CHR(10) ||
+  '  TARGET_LAG = ''' || target_lag || '''' || CHR(10) ||
   'AS (' || CHR(10) ||
-  '  ' || SOURCE_QUERY || CHR(10) ||
-  ');' AS CREATE_STATEMENT
+  '  ' || source_query || CHR(10) ||
+  ');' AS create_statement
 FROM SNOWFLAKE_EXAMPLE.CORTEX_SEARCH.SERVICE_SPEC;
 
 -- ============================================================================

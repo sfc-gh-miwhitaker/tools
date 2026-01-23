@@ -6,12 +6,58 @@ This patch adds chart/visualization support to the [sfguide-integrate-snowflake-
 
 The original quickstart handles text, SQL queries, and citations but **does not render visualizations**. When Cortex Agent returns Vega-Lite chart specs, they are silently ignored.
 
+```
+                          BEFORE PATCH
+┌─────────────┐     ┌────────────────┐     ┌─────────────┐
+│    Slack    │────▶│   Slack Bot    │────▶│   Cortex    │
+│    User     │     │    (app.py)    │     │   Agent     │
+└─────────────┘     └────────────────┘     └─────────────┘
+                           │                      │
+                           │◀─────────────────────┘
+                           │   Response contains:
+                           │   • Text ✓
+                           │   • SQL ✓
+                           │   • Citations ✓
+                           │   • Vega-Lite Chart ✗ (ignored!)
+                           ▼
+                    ┌─────────────┐
+                    │    Slack    │  Only text/SQL shown
+                    │   Channel   │  Charts are lost!
+                    └─────────────┘
+```
+
 ## Solution
 
 This patch:
 1. Extracts Vega-Lite chart specs from Cortex Agent responses
 2. Renders charts to PNG using `vl-convert-python`
 3. Uploads chart images to Slack via the Files API
+
+```
+                           AFTER PATCH
+┌─────────────┐     ┌────────────────┐     ┌─────────────┐
+│    Slack    │────▶│   Slack Bot    │────▶│   Cortex    │
+│    User     │     │    (app.py)    │     │   Agent     │
+└─────────────┘     └────────────────┘     └─────────────┘
+                           │                      │
+                           │◀─────────────────────┘
+                           │   Response contains:
+                           │   • Text ✓
+                           │   • SQL ✓
+                           │   • Citations ✓
+                           │   • Vega-Lite Chart ✓
+                           ▼
+                    ┌────────────────┐
+                    │ chart_renderer │  Vega-Lite spec
+                    │     .py        │  converted to PNG
+                    └────────────────┘
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │    Slack    │  Full response with
+                    │   Channel   │  embedded chart image!
+                    └─────────────┘
+```
 
 ## Installation
 
