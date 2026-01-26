@@ -39,7 +39,7 @@ curl -X POST \
   "https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/databases/MYDB/schemas/MYSCHEMA/agents/my_agent:run" \
   -H "Authorization: Bearer ${SNOWFLAKE_PAT}" \
   -H "Content-Type: application/json" \
-  -H "X-Snowflake-Context: {\"currentRole\": \"ANALYST_ROLE\"}" \
+  -H "X-Snowflake-Role: ANALYST_ROLE" \
   -d '{
     "thread_id": "'"$THREAD_ID"'",
     "parent_message_id": 0,
@@ -73,7 +73,7 @@ curl -X POST \
   "https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/cortex/agent:run" \
   -H "Authorization: Bearer ${SNOWFLAKE_PAT}" \
   -H "Content-Type: application/json" \
-  -H "X-Snowflake-Context: {\"currentRole\": \"ANALYST_ROLE\"}" \
+  -H "X-Snowflake-Role: ANALYST_ROLE" \
   -d '{
     "thread_id": "'"$THREAD_ID_2"'",
     "parent_message_id": 0,
@@ -139,7 +139,7 @@ curl -X POST \
   "https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/databases/MYDB/schemas/MYSCHEMA/agents/my_agent:run" \
   -H "Authorization: Bearer ${SNOWFLAKE_PAT}" \
   -H "Content-Type: application/json" \
-  -H "X-Snowflake-Context: {\"currentRole\": \"ANALYST_ROLE\"}" \
+  -H "X-Snowflake-Role: ANALYST_ROLE" \
   -d '{
     "thread_id": "'"$THREAD_ID"'",
     "parent_message_id": 0,
@@ -160,8 +160,8 @@ curl -X POST \
 
 ## Key Points
 
-- **Role context**: Use `X-Snowflake-Context` header with `{"currentRole": "ANALYST_ROLE"}`
-- **Warehouse**: Set in `tool_resources` → `execution_environment` → `warehouse`
+- **Role context**: Use `X-Snowflake-Role` header (e.g., `X-Snowflake-Role: ANALYST_ROLE`)
+- **Warehouse context**: Use `X-Snowflake-Warehouse` header or set in `tool_resources` → `execution_environment` → `warehouse`
 - **Streaming**: Use `--no-buffer` flag to see streaming responses in real-time
 - **Thread management**: Create a thread once, reuse for multi-turn conversations
 - **Parent message ID**: Use `0` for first message, then use returned message IDs for follow-ups

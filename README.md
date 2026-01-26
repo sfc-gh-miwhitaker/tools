@@ -26,25 +26,29 @@ Total setup time: ~7-16 minutes (varies by tool)
 
 ## Available Tools and Guides
 
-### Deployable tools
+### Deployable Tools
 
-| Tool | Type | What it does | Key Snowflake features | Deploy | Cleanup | Notes |
+| Tool | Type | What it does | Key Snowflake Features | Deploy | Cleanup | Notes |
 |------|------|--------------|------------------------|--------|--------|-------|
-| [`tools/cortex-agent-chat/`](/tools/cortex-agent-chat/) | Tool (hybrid: Snowflake + local UI) | React chat UI for Cortex Agents (REST API + key-pair JWT) | Cortex Agents, REST API, Key-pair JWT | `deploy.sql` | `teardown.sql` | Requires local Node for the UI; SQL deploy creates the agent and schema `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT`. |
-| [`tools/wallmonitor/`](/tools/wallmonitor/) | Tool (Snowflake-native) | Agent monitoring and thread analytics | `GET_AI_OBSERVABILITY_EVENTS`, Serverless Tasks, Views | `deploy.sql` | Manual (see below) | Creates schema `SNOWFLAKE_EXAMPLE.WALLMONITOR` (not `SFE_*`). Requires `ACCOUNTADMIN` for serverless task setup. |
-| [`tools/contact-form-streamlit/`](/tools/contact-form-streamlit/) | Tool (Snowflake-native) | Streamlit form that writes submissions to a Snowflake table | Streamlit in Snowflake, Snowpark | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_CONTACT_FORM`. |
-| [`tools/api-data-fetcher/`](/tools/api-data-fetcher/) | Tool (Snowflake-native) | Python stored procedure that fetches from a REST API | External Access Integration, Network Rule, Python Procedure | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_API_FETCHER`; creates account-level external access objects (may require elevated privileges to create integrations). |
-| [`tools/replication-cost-calculator/`](/tools/replication-cost-calculator/) | Tool (Snowflake-native) | Streamlit estimator for replication / DR costs | Streamlit, `ACCOUNT_USAGE` | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC`. |
-| [`tools/cortex-cost-calculator/`](/tools/cortex-cost-calculator/) | Tool (Snowflake-native) | Streamlit monitoring and forecasting for Cortex usage | Streamlit, `ACCOUNT_USAGE`, Serverless Task | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_CORTEX_CALC`. |
-| [`tools/semantic-view-enhancer/`](/tools/semantic-view-enhancer/) | Tool (Snowflake-native) | Enhances semantic view descriptions using Cortex AI | Cortex AI, Semantic Views, Python Procedure | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SEMANTIC_ENHANCEMENTS` (not `SFE_*`) and warehouse `SFE_ENHANCEMENT_WH`. |
+| [`cortex-agent-chat/`](/tools/cortex-agent-chat/) | Hybrid (Snowflake + local UI) | React chat UI for Cortex Agents (REST API + key-pair JWT) | Cortex Agents, REST API, Key-pair JWT | `deploy.sql` | `teardown.sql` | Requires local Node for the UI; creates schema `SNOWFLAKE_EXAMPLE.SFE_CORTEX_AGENT_CHAT`. |
+| [`contact-form-streamlit/`](/tools/contact-form-streamlit/) | Snowflake-native | Streamlit form that writes submissions to a Snowflake table | Streamlit in Snowflake, Snowpark | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_CONTACT_FORM`. |
+| [`api-data-fetcher/`](/tools/api-data-fetcher/) | Snowflake-native | Python stored procedure that fetches from a REST API | External Access Integration, Network Rule, Python Procedure | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_API_FETCHER`; may require elevated privileges for integrations. |
+| [`replication-cost-calculator/`](/tools/replication-cost-calculator/) | Snowflake-native | Streamlit estimator for replication / DR costs | Streamlit, `ACCOUNT_USAGE` | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_REPLICATION_CALC`. |
+| [`cortex-cost-calculator/`](/tools/cortex-cost-calculator/) | Snowflake-native | Streamlit monitoring and forecasting for Cortex usage | Streamlit, `ACCOUNT_USAGE`, Serverless Task | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SFE_CORTEX_CALC`. |
+| [`semantic-view-enhancer/`](/tools/semantic-view-enhancer/) | Snowflake-native | Enhances semantic view descriptions using Cortex AI | Cortex AI, Semantic Views, Python Procedure | `deploy.sql` | `teardown.sql` | Creates schema `SNOWFLAKE_EXAMPLE.SEMANTIC_ENHANCEMENTS` and warehouse `SFE_ENHANCEMENT_WH`. |
 
-### Guides and examples (no deploy/teardown)
+### Guides and Examples (no deploy/teardown)
 
 | Path | Type | What it contains |
 |------|------|------------------|
-| [`tools/api-tricks/`](/tools/api-tricks/) | Examples | Working examples of calling the `agent:run` REST API with execution context (role/warehouse). |
-| [`tools/multi-tenant/`](/tools/multi-tenant/) | Guide | End-to-end multi-tenant agent pattern (OAuth IdP + Snowflake row access policies + agent API context). |
-| [`tools/replication-workbook/`](/tools/replication-workbook/) | Guide | Replication and failover guides (SQL runbooks for Snowsight). |
+| [`agent-config-diff/`](/tools/agent-config-diff/) | Utility | Extract Cortex Agent specs for comparison, version control, and config management. |
+| [`api-routing-test/`](/tools/api-routing-test/) | Example | Generic curl command for calling `agent:run` endpoint with role/warehouse overrides. |
+| [`api-tricks/`](/tools/api-tricks/) | Examples | Working examples of calling the `agent:run` REST API with execution context (role/warehouse). |
+| [`cortex-search/`](/tools/cortex-search/) | Guide | Creating, managing, and querying Cortex Search services (UI + SQL). |
+| [`DocAI-Sunset/`](/tools/DocAI-Sunset/) | Migration Guide | Migrating from Document AI to `AI_PARSE_DOCUMENT` and `AI_EXTRACT` (deadline: Feb 28, 2026). |
+| [`multi-tenant/`](/tools/multi-tenant/) | Guide | End-to-end multi-tenant agent pattern (OAuth IdP + Snowflake row access policies + agent API context). |
+| [`replication-workbook/`](/tools/replication-workbook/) | Guide | Replication and failover guides (SQL runbooks for Snowsight). |
+| [`Slack-qs-patch/`](/tools/Slack-qs-patch/) | Patch | Adds chart/visualization support to the Cortex Agent + Slack quickstart. |
 
 ---
 
@@ -52,23 +56,27 @@ Total setup time: ~7-16 minutes (varies by tool)
 
 ```
 tools/
-├── README.md                       # This file - tools index
+├── README.md                        # This file - tools index
 ├── docs/
-│   └── 01-CONTRIBUTING.md          # How to add new tools
+│   └── 01-CONTRIBUTING.md           # How to add new tools
 ├── shared/
 │   └── sql/
-│       └── 00_shared_setup.sql     # Shared database setup
+│       └── 00_shared_setup.sql      # Shared database setup
 └── tools/
-    ├── cortex-agent-chat/          # React chat UI for Cortex Agents
-    ├── wallmonitor/                # Cortex Agent monitoring
-    ├── contact-form-streamlit/     # Streamlit contact form
-    ├── api-data-fetcher/           # API fetch procedure
-    ├── replication-cost-calculator/ # DR cost estimator
-    ├── cortex-cost-calculator/     # Cortex AI cost monitoring
-    ├── semantic-view-enhancer/     # AI-enhanced semantic views
-    ├── api-tricks/                 # Agent Run API examples
-    ├── multi-tenant/               # Multi-tenant agent guide
-    └── replication-workbook/       # Replication guides (SQL runbooks)
+    ├── agent-config-diff/           # Agent spec extraction for diff/versioning
+    ├── api-data-fetcher/            # API fetch procedure (deploy/teardown)
+    ├── api-routing-test/            # Generic agent:run curl command
+    ├── api-tricks/                  # Agent Run API examples
+    ├── contact-form-streamlit/      # Streamlit contact form (deploy/teardown)
+    ├── cortex-agent-chat/           # React chat UI for Cortex Agents (deploy/teardown)
+    ├── cortex-cost-calculator/      # Cortex AI cost monitoring (deploy/teardown)
+    ├── cortex-search/               # Cortex Search service guide
+    ├── DocAI-Sunset/                # Document AI migration guide
+    ├── multi-tenant/                # Multi-tenant agent pattern guide
+    ├── replication-cost-calculator/ # DR cost estimator (deploy/teardown)
+    ├── replication-workbook/        # Replication guides (SQL runbooks)
+    ├── semantic-view-enhancer/      # AI-enhanced semantic views (deploy/teardown)
+    └── Slack-qs-patch/              # Slack quickstart visualization patch
 ```
 
 ---
@@ -102,17 +110,7 @@ All tools use common infrastructure to avoid collisions:
 | Database | `SNOWFLAKE_EXAMPLE` | Shared demo database |
 | Warehouse | `SFE_TOOLS_WH` | Shared compute (X-SMALL) |
 
-Each deployable tool creates its own **schema** within `SNOWFLAKE_EXAMPLE`. Schema names are currently tool-specific (many use an `SFE_...` schema, but some tools use descriptive schemas like `WALLMONITOR` and `SEMANTIC_ENHANCEMENTS`). For the authoritative schema name, see the tool's `deploy.sql`.
-
-### Wallmonitor cleanup note
-
-`tools/wallmonitor/` does not currently ship a `teardown.sql`. To remove it, run:
-
-```sql
-USE ROLE ACCOUNTADMIN;
-DROP TASK IF EXISTS SNOWFLAKE_EXAMPLE.WALLMONITOR.REFRESH_AGENT_EVENTS_TASK;
-DROP SCHEMA IF EXISTS SNOWFLAKE_EXAMPLE.WALLMONITOR CASCADE;
-```
+Each deployable tool creates its own **schema** within `SNOWFLAKE_EXAMPLE`. Schema names are tool-specific (many use an `SFE_...` prefix, but some tools use descriptive schemas like `SEMANTIC_ENHANCEMENTS`). For the authoritative schema name, see the tool's `deploy.sql`.
 
 ---
 
@@ -162,4 +160,4 @@ Some tools include Mermaid diagrams under `tools/<tool>/diagrams/` to document d
 
 ---
 
-*SE Community • Tools Collection • Last Updated: 2026-01-07*
+*SE Community • Tools Collection • Last Updated: 2026-01-26*

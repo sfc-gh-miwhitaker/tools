@@ -22,7 +22,7 @@ Complete guide for building a customer-facing React application where each custo
 │  (Node.js)      │
 └────────┬────────┘
          │ 3. Validate JWT + Call Snowflake
-         │    with X-Snowflake-Context
+         │    (OAuth token provides context)
          ▼
 ┌─────────────────┐
 │  Snowflake      │
@@ -200,19 +200,23 @@ GRANT SELECT ON sales TO ROLE customer_app_role;
 -- Create semantic model for customer data
 -- Save as @my_stage/sales_semantic_model.yaml
 
--- Create agent
+-- Create agent using current FROM SPECIFICATION syntax (GA Jan 2025)
 CREATE OR REPLACE AGENT customer_sales_agent
-  MODEL = claude-4-sonnet
-  INSTRUCTIONS = 'You are a helpful sales data assistant. Only show data for the current customer.'
-  TOOLS = (
-    TOOL CORTEX_ANALYST(
-      semantic_view = 'sales_semantic_view',
-      execution_environment = (
-        type = 'warehouse',
-        warehouse = 'customer_wh'
-      )
-    )
-  );
+  FROM SPECIFICATION
+  $$
+  models:
+    orchestration: claude-4-sonnet
+  instructions:
+    system: |
+      You are a helpful sales data assistant.
+      Only show data for the current customer.
+      Always provide clear, concise answers.
+  tools:
+    - tool: cortex_analyst
+      description: Query customer sales data
+      parameters:
+        semantic_view: sales_semantic_view
+  $$;
 
 GRANT USAGE ON AGENT customer_sales_agent TO ROLE customer_app_role;
 ```
@@ -437,14 +441,13 @@ app.post('/api/agent/run', validateAzureToken, async (req, res) => {
     const token = await getSnowflakeSessionToken(req.user.azureToken, req.user.customerId);
 
     // Prepare headers with user context
+    // NOTE: Use X-Snowflake-Role for role override, X-Snowflake-Warehouse for warehouse override
     const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      // Set Snowflake context - this ensures queries run as the authenticated user
-      'X-Snowflake-Context': JSON.stringify({
-        // The current role is automatically set based on user's default or OAuth mapping
-        // Session variables could be set here if needed
-      })
+      // Optional: Override the default role if needed (OAuth sets default automatically)
+      // 'X-Snowflake-Role': 'customer_app_role',
+      // 'X-Snowflake-Warehouse': 'customer_wh',
     };
 
     const url = `https://${SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/databases/${database}/schemas/${schema}/agents/${agentName}:run`;
